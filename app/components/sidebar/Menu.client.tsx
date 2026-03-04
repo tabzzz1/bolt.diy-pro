@@ -1,6 +1,8 @@
 import { motion, type Variants } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { zhCN } from 'date-fns/locale';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { ControlPanel } from '~/components/@settings/core/ControlPanel';
@@ -15,6 +17,7 @@ import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
 import { isSidebarOpen } from '~/lib/stores/sidebar';
+import { languageStore } from '~/lib/stores/i18n';
 
 const menuVariants = {
   closed: {
@@ -61,6 +64,10 @@ function CurrentDateTimeInline() {
 }
 
 export const Menu = () => {
+  const { t } = useTranslation('sidebar');
+  const language = useStore(languageStore);
+  const dateFnsLocale = language === 'zh' ? zhCN : undefined;
+
   const { duplicateCurrentChat, exportChat } = useChatHistory();
   const [list, setList] = useState<ChatHistoryItem[]>([]);
   const open = useStore(isSidebarOpen);
@@ -74,6 +81,20 @@ export const Menu = () => {
     items: list,
     searchFields: ['description'],
   });
+
+  /**
+   * 将固定的英文 key（Today / Yesterday / Past 30 Days）翻译为当前语言。
+   * 星期名和月份名已由 date-fns locale 直接格式化，无需在此处理。
+   */
+  const translateCategory = (category: string): string => {
+    const fixedMap: Record<string, string> = {
+      Today: t('dateBinning.today'),
+      Yesterday: t('dateBinning.yesterday'),
+      'Past 30 Days': t('dateBinning.past30Days'),
+    };
+
+    return fixedMap[category] ?? category;
+  };
 
   const loadEntries = useCallback(() => {
     if (db) {
@@ -116,7 +137,7 @@ export const Menu = () => {
 
       deleteChat(item.id)
         .then(() => {
-          toast.success('对话已成功删除', {
+          toast.success(t('menu.deleteSuccess'), {
             position: 'bottom-right',
             autoClose: 3000,
           });
@@ -132,7 +153,7 @@ export const Menu = () => {
         })
         .catch((error) => {
           console.error('Failed to delete chat:', error);
-          toast.error('删除对话失败', {
+          toast.error(t('menu.deleteFail'), {
             position: 'bottom-right',
             autoClose: 3000,
           });
@@ -141,7 +162,7 @@ export const Menu = () => {
           loadEntries();
         });
     },
-    [loadEntries, deleteChat],
+    [loadEntries, deleteChat, t],
   );
 
   const deleteSelectedItems = useCallback(
@@ -175,11 +196,16 @@ export const Menu = () => {
 
       // Show appropriate toast message
       if (errors.length === 0) {
-        toast.success(`已成功删除 ${deletedCount} 条对话`);
+        toast.success(t('menu.bulkDeleteSuccess', { count: deletedCount }));
       } else {
-        toast.warning(`已删除 ${deletedCount}/${itemsToDeleteIds.length} 条对话，${errors.length} 条删除失败`, {
-          autoClose: 5000,
-        });
+        toast.warning(
+          t('menu.bulkDeletePartial', {
+            deletedCount,
+            total: itemsToDeleteIds.length,
+            errorCount: errors.length,
+          }),
+          { autoClose: 5000 },
+        );
       }
 
       // Reload the list after all deletions
@@ -195,7 +221,7 @@ export const Menu = () => {
         window.location.pathname = '/';
       }
     },
-    [deleteChat, loadEntries, db],
+    [deleteChat, loadEntries, db, t],
   );
 
   const closeDialog = () => {
@@ -222,19 +248,19 @@ export const Menu = () => {
 
   const handleBulkDeleteClick = useCallback(() => {
     if (selectedItems.length === 0) {
-      toast.info('请至少选择一条对话后再删除');
+      toast.info(t('menu.selectAtLeastOne'));
       return;
     }
 
     const selectedChats = list.filter((item) => selectedItems.includes(item.id));
 
     if (selectedChats.length === 0) {
-      toast.error('未找到所选对话');
+      toast.error(t('menu.chatNotFound'));
       return;
     }
 
     setDialogContent({ type: 'bulkDelete', items: selectedChats });
-  }, [selectedItems, list]); // Keep list dependency
+  }, [selectedItems, list, t]); // Keep list dependency
 
   const selectAll = useCallback(() => {
     const allFilteredIds = filteredList.map((item) => item.id);
@@ -320,7 +346,7 @@ export const Menu = () => {
               {profile?.avatar ? (
                 <img
                   src={profile.avatar}
-                  alt={profile?.username || '用户'}
+                  alt={profile?.username || t('menu.user')}
                   className="w-full h-full object-cover"
                   loading="eager"
                   decoding="sync"
@@ -331,7 +357,7 @@ export const Menu = () => {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold text-gray-900 dark:text-white truncate leading-tight">
-                {profile?.username || '访客用户'}
+                {profile?.username || t('menu.guestUser')}
               </div>
               <CurrentDateTimeInline />
             </div>
@@ -348,7 +374,7 @@ export const Menu = () => {
                 className="flex-1 flex gap-2 items-center justify-center bg-purple-500 hover:bg-purple-600 dark:bg-purple-600 dark:hover:bg-purple-700 text-white rounded-lg px-4 py-2.5 transition-colors font-medium shadow-sm"
               >
                 <span className="inline-block i-ph:plus-bold h-4 w-4" />
-                <span className="text-sm">新建对话</span>
+                <span className="text-sm">{t('menu.newChat')}</span>
               </a>
               <button
                 onClick={toggleSelectionMode}
@@ -358,7 +384,7 @@ export const Menu = () => {
                     ? 'bg-purple-600 dark:bg-purple-500 text-white'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700',
                 )}
-                aria-label={selectionMode ? '退出选择模式' : '进入选择模式'}
+                aria-label={selectionMode ? t('menu.exitSelectionMode') : t('menu.enterSelectionMode')}
               >
                 <span className={selectionMode ? 'i-ph:x h-4 w-4' : 'i-ph:check-square h-4 w-4'} />
               </button>
@@ -370,9 +396,9 @@ export const Menu = () => {
               <input
                 className="w-full bg-gray-50 dark:bg-gray-900 pl-9 pr-3 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500/50 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 border border-gray-200 dark:border-gray-800 transition-colors"
                 type="search"
-                placeholder="搜索对话..."
+                placeholder={t('menu.searchPlaceholder')}
                 onChange={handleSearchChange}
-                aria-label="搜索对话"
+                aria-label={t('menu.searchAriaLabel')}
               />
             </div>
           </div>
@@ -380,12 +406,12 @@ export const Menu = () => {
           {/* 列表标题行 */}
           <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
             <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">
-              我的对话
+              {t('menu.myChats')}
             </span>
             {selectionMode && (
               <div className="flex items-center gap-1.5">
                 <Button variant="ghost" size="sm" onClick={selectAll}>
-                  {selectedItems.length === filteredList.length ? '取消全选' : '全选'}
+                  {selectedItems.length === filteredList.length ? t('menu.deselectAll') : t('menu.selectAll')}
                 </Button>
                 <Button
                   variant="destructive"
@@ -393,7 +419,7 @@ export const Menu = () => {
                   onClick={handleBulkDeleteClick}
                   disabled={selectedItems.length === 0}
                 >
-                  删除所选
+                  {t('menu.deleteSelected')}
                 </Button>
               </div>
             )}
@@ -405,15 +431,15 @@ export const Menu = () => {
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="i-ph:chat-circle-dots text-4xl text-gray-200 dark:text-gray-800 mb-2" />
                 <p className="text-sm text-gray-400 dark:text-gray-600">
-                  {list.length === 0 ? '暂无历史对话' : '未找到匹配内容'}
+                  {list.length === 0 ? t('menu.noHistory') : t('menu.noResults')}
                 </p>
               </div>
             )}
             <DialogRoot open={dialogContent !== null}>
-              {binDates(filteredList).map(({ category, items }) => (
+              {binDates(filteredList, dateFnsLocale).map(({ category, items }) => (
                 <div key={category} className="mt-3 first:mt-1 space-y-0.5">
                   <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest sticky top-0 z-1 bg-white dark:bg-gray-950 px-3 py-1">
-                    {category}
+                    {translateCategory(category)}
                   </div>
                   <div>
                     {items.map((item) => (
@@ -440,20 +466,22 @@ export const Menu = () => {
                 {dialogContent?.type === 'delete' && (
                   <>
                     <div className="p-6 bg-white dark:bg-gray-950">
-                      <DialogTitle className="text-gray-900 dark:text-white">确定删除对话？</DialogTitle>
+                      <DialogTitle className="text-gray-900 dark:text-white">
+                        {t('menu.confirmDeleteTitle')}
+                      </DialogTitle>
                       <DialogDescription className="mt-2 text-gray-600 dark:text-gray-400">
                         <p>
-                          即将删除对话{' '}
+                          {t('menu.confirmDeleteDesc')}{' '}
                           <span className="font-medium text-gray-900 dark:text-white">
                             {dialogContent.item.description}
                           </span>
                         </p>
-                        <p className="mt-2">确定要删除这条对话吗？</p>
+                        <p className="mt-2">{t('menu.confirmDeleteQuestion')}</p>
                       </DialogDescription>
                     </div>
                     <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
                       <DialogButton type="secondary" onClick={closeDialog}>
-                        取消
+                        {t('menu.cancel')}
                       </DialogButton>
                       <DialogButton
                         type="danger"
@@ -463,7 +491,7 @@ export const Menu = () => {
                           closeDialog();
                         }}
                       >
-                        删除
+                        {t('menu.delete')}
                       </DialogButton>
                     </div>
                   </>
@@ -471,9 +499,11 @@ export const Menu = () => {
                 {dialogContent?.type === 'bulkDelete' && (
                   <>
                     <div className="p-6 bg-white dark:bg-gray-950">
-                      <DialogTitle className="text-gray-900 dark:text-white">确定删除所选对话？</DialogTitle>
+                      <DialogTitle className="text-gray-900 dark:text-white">
+                        {t('menu.confirmBulkDeleteTitle')}
+                      </DialogTitle>
                       <DialogDescription className="mt-2 text-gray-600 dark:text-gray-400">
-                        <p>即将删除以下 {dialogContent.items.length} 条对话：</p>
+                        <p>{t('menu.confirmBulkDeleteDesc', { count: dialogContent.items.length })}</p>
                         <div className="mt-2 max-h-32 overflow-auto border border-gray-100 dark:border-gray-800 rounded-md bg-gray-50 dark:bg-gray-900 p-2">
                           <ul className="list-disc pl-5 space-y-1">
                             {dialogContent.items.map((item) => (
@@ -483,12 +513,12 @@ export const Menu = () => {
                             ))}
                           </ul>
                         </div>
-                        <p className="mt-3">确定要删除这些对话吗？</p>
+                        <p className="mt-3">{t('menu.confirmBulkDeleteQuestion')}</p>
                       </DialogDescription>
                     </div>
                     <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
                       <DialogButton type="secondary" onClick={closeDialog}>
-                        取消
+                        {t('menu.cancel')}
                       </DialogButton>
                       <DialogButton
                         type="danger"
@@ -503,7 +533,7 @@ export const Menu = () => {
                           closeDialog();
                         }}
                       >
-                        删除
+                        {t('menu.delete')}
                       </DialogButton>
                     </div>
                   </>

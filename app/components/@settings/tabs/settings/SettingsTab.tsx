@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 import { Switch } from '~/components/ui/Switch';
 import type { UserProfile } from '~/components/@settings/core/types';
 import { isMac } from '~/utils/os';
+import { setLanguage, type Language } from '~/lib/stores/i18n';
 
 // Helper to get modifier key symbols/text
 const getModifierSymbol = (modifier: string): string => {
@@ -21,6 +23,7 @@ const getModifierSymbol = (modifier: string): string => {
 };
 
 export default function SettingsTab() {
+  const { t } = useTranslation('settings');
   const [currentTimezone, setCurrentTimezone] = useState('');
   const [settings, setSettings] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('bolt_user_profile');
@@ -33,29 +36,33 @@ export default function SettingsTab() {
         };
   });
 
+  // 用于跳过首次挂载时的自动保存 effect，避免打开设置面板就弹出 toast
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
     setCurrentTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }, []);
 
-  // Save settings automatically when they change
+  // 仅在用户实际修改设置后才保存并提示
   useEffect(() => {
-    try {
-      // Get existing profile data
-      const existingProfile = JSON.parse(localStorage.getItem('bolt_user_profile') || '{}');
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
 
-      // Merge with new settings
+    try {
+      const existingProfile = JSON.parse(localStorage.getItem('bolt_user_profile') || '{}');
       const updatedProfile = {
         ...existingProfile,
         notifications: settings.notifications,
         language: settings.language,
         timezone: settings.timezone,
       };
-
       localStorage.setItem('bolt_user_profile', JSON.stringify(updatedProfile));
-      toast.success('Settings updated');
+      toast.success(t('saveSuccess'));
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Failed to update settings');
+      toast.error(t('saveFail'));
     }
   }, [settings]);
 
@@ -80,7 +87,11 @@ export default function SettingsTab() {
           </div>
           <select
             value={settings.language}
-            onChange={(e) => setSettings((prev) => ({ ...prev, language: e.target.value }))}
+            onChange={(e) => {
+              const newLang = e.target.value;
+              setSettings((prev) => ({ ...prev, language: newLang }));
+              setLanguage((newLang === 'zh' ? 'zh' : 'en') as Language);
+            }}
             className={classNames(
               'w-full px-3 py-2 rounded-lg text-sm',
               'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
@@ -91,15 +102,7 @@ export default function SettingsTab() {
             )}
           >
             <option value="en">English</option>
-            <option value="es">Español</option>
-            <option value="fr">Français</option>
-            <option value="de">Deutsch</option>
-            <option value="it">Italiano</option>
-            <option value="pt">Português</option>
-            <option value="ru">Русский</option>
             <option value="zh">中文</option>
-            <option value="ja">日本語</option>
-            <option value="ko">한국어</option>
           </select>
         </div>
 

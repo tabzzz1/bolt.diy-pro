@@ -16,6 +16,7 @@ import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
+import '~/lib/i18n/config'; // 副作用导入：在任何组件渲染前初始化 i18next
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
