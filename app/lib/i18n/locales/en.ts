@@ -297,6 +297,16 @@ const en = {
       createFile: 'Create',
       runCommand: 'Run command',
       startApplication: 'Start Application',
+      chatSummaryHeading: 'Summary',
+      codeContextHeading: 'Context',
+    },
+    progress: {
+      analysingRequest: 'Analysing Request',
+      analysisComplete: 'Analysis Complete',
+      determiningFiles: 'Determining Files to Read',
+      codeFilesSelected: 'Code Files Selected',
+      generatingResponse: 'Generating Response',
+      responseGenerated: 'Response Generated',
     },
   },
 } as const;

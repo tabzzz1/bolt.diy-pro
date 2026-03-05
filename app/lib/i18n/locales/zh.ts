@@ -291,6 +291,16 @@ const zh = {
       createFile: '创建',
       runCommand: '执行命令',
       startApplication: '启动应用',
+      chatSummaryHeading: '摘要',
+      codeContextHeading: '上下文',
+    },
+    progress: {
+      analysingRequest: '正在分析请求',
+      analysisComplete: '分析完成',
+      determiningFiles: '正在确定读取文件',
+      codeFilesSelected: '代码文件已选定',
+      generatingResponse: '正在生成回复',
+      responseGenerated: '回复已生成',
     },
   },
 } as const;

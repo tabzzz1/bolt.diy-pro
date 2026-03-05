@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ProgressAnnotation } from '~/types/context';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
@@ -86,6 +87,9 @@ export default function ProgressCompilation({ data }: { data?: ProgressAnnotatio
 }
 
 const ProgressItem = ({ progress }: { progress: ProgressAnnotation }) => {
+  const { t } = useTranslation('chat');
+  const message = t(`progress.${progress.message}`, { defaultValue: progress.message });
+
   return (
     <motion.div
       className={classNames('flex text-sm gap-3')}
@@ -104,7 +108,7 @@ const ProgressItem = ({ progress }: { progress: ProgressAnnotation }) => {
         </div>
         {/* {x.label} */}
       </div>
-      {progress.message}
+      {message}
     </motion.div>
   );
 };

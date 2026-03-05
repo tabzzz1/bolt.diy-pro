@@ -71,13 +71,17 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
   const dynamicTitle =
     artifact?.type === 'bundled'
       ? allActionFinished
-        ? artifact.id === 'restored-project-setup'
+        ? artifact.title === 'Restored Project & Setup'
           ? t('artifact.projectRestored')
           : t('artifact.projectCreated')
-        : artifact.id === 'restored-project-setup'
+        : artifact.title === 'Restored Project & Setup'
           ? t('artifact.restoringProject')
           : t('artifact.creatingProject')
-      : artifact?.title;
+      : artifact?.title === 'Project Setup'
+        ? allActionFinished
+          ? t('artifact.projectCreated')
+          : t('artifact.creatingProject')
+        : artifact?.title;
 
   return (
     <>
@@ -129,7 +133,7 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
             </div>
             <div className="text-bolt-elements-textPrimary font-medium leading-5 text-sm">
               {allActionFinished
-                ? artifact.id === 'restored-project-setup'
+                ? artifact.title === 'Restored Project & Setup'
                   ? t('artifact.restoreFilesFromSnapshot')
                   : t('artifact.initialFilesCreated')
                 : t('artifact.creatingInitialFiles')}
