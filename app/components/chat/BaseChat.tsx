@@ -249,9 +249,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           startWidthRef.current = Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_CHAT_WIDTH;
         }
 
-        // 注意：data-resizing 推迟到第一次 mousemove 时才设置，
-        // 这样 mousedown 时药丸动画可以完整播放，拖动时再关闭过渡
-        let resizingStarted = false;
+        // 关闭所有 CSS 过渡，让两侧面板实时跟随鼠标
+        // （.divider-pill 通过 CSS 选择器排除，保留自身扩大动画）
+        document.documentElement.setAttribute('data-resizing', '');
 
         const cleanup = () => {
           document.body.style.cursor = '';
@@ -266,12 +266,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         };
 
         const onMouseMove = (ev: MouseEvent) => {
-          // 第一次移动时才关闭过渡，保证 mousedown 时药丸动画能播完
-          if (!resizingStarted) {
-            resizingStarted = true;
-            document.documentElement.setAttribute('data-resizing', '');
-          }
-
           const delta = ev.clientX - startXRef.current;
           const maxChatWidth = window.innerWidth - MIN_WORKBENCH_WIDTH - DIVIDER_WIDTH;
 
@@ -780,7 +774,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 {/* 药丸形把手：默认隐藏，hover 显示，拖拽时变高，抵抗时变橙色 */}
                 <div
                   className={classNames(
-                    'w-[4px] rounded-full pointer-events-none',
+                    'divider-pill w-[4px] rounded-full pointer-events-none',
                     'transition-[height,opacity,background-color]',
                     isDividerActive && isDividerResisting
                       ? 'h-20 opacity-100 bg-rose-400 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]'

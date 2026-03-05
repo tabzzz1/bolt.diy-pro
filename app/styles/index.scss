@@ -17,7 +17,8 @@ body {
 // Disable all CSS transitions while the resize divider is being dragged.
 // The workbench fixed panel has transition-[left,width] duration-200 which causes lag
 // and overlap because the panel takes 200ms to reach its new position.
-html[data-resizing] * {
+// .divider-pill is excluded so its grow/shrink animation still plays on mousedown.
+html[data-resizing] *:not(.divider-pill) {
   transition: none !important;
 }
 
