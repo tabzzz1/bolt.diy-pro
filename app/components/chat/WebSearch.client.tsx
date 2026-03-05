@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { IconButton } from '~/components/ui/IconButton';
 import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
@@ -38,6 +39,7 @@ function formatSearchResult(data: WebSearchData): string {
 }
 
 export function WebSearch({ onSearchResult, disabled = false }: WebSearchProps) {
+  const { t } = useTranslation('chat');
   const [isOpen, setIsOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [url, setUrl] = useState('');
@@ -85,15 +87,15 @@ export function WebSearch({ onSearchResult, disabled = false }: WebSearchProps) 
       const result = (await response.json()) as WebSearchResponse;
 
       if (!response.ok || !result.success || !result.data) {
-        throw new Error(result.error || 'Failed to fetch URL content');
+        throw new Error(result.error || t('webSearch.fetchError'));
       }
 
       onSearchResult(formatSearchResult(result.data));
-      toast.success('URL content fetched');
+      toast.success(t('webSearch.fetchSuccess'));
       setUrl('');
       setIsOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to fetch URL');
+      toast.error(error instanceof Error ? error.message : t('webSearch.fetchUrlError'));
     } finally {
       setIsSearching(false);
     }
@@ -102,7 +104,7 @@ export function WebSearch({ onSearchResult, disabled = false }: WebSearchProps) 
   return (
     <div ref={containerRef} className="relative">
       <IconButton
-        title="Fetch URL content"
+        title={t('toolbar.fetchUrlContent')}
         disabled={disabled || isSearching}
         onClick={() => setIsOpen(!isOpen)}
         className="transition-all"
@@ -154,7 +156,7 @@ export function WebSearch({ onSearchResult, disabled = false }: WebSearchProps) 
               'disabled:opacity-50 disabled:cursor-not-allowed',
             )}
           >
-            {isSearching ? 'Fetching...' : 'Fetch'}
+            {isSearching ? t('webSearch.fetching') : t('webSearch.fetch')}
           </button>
         </div>
       )}

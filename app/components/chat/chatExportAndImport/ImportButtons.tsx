@@ -1,4 +1,5 @@
 import type { Message } from 'ai';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { ImportFolderButton } from '~/components/chat/ImportFolderButton';
 import { Button } from '~/components/ui/Button';
@@ -9,7 +10,13 @@ type ChatData = {
   description?: string; // Optional description
 };
 
-export function ImportButtons(importChat: ((description: string, messages: Message[]) => Promise<void>) | undefined) {
+interface ImportButtonsProps {
+  importChat: ((description: string, messages: Message[]) => Promise<void>) | undefined;
+}
+
+export function ImportButtons({ importChat }: ImportButtonsProps) {
+  const { t } = useTranslation('chat');
+
   return (
     <div className="flex flex-col items-center justify-center w-auto">
       <input
@@ -31,29 +38,29 @@ export function ImportButtons(importChat: ((description: string, messages: Messa
 
                   // Standard format
                   if (Array.isArray(data.messages)) {
-                    await importChat(data.description || 'Imported Chat', data.messages);
-                    toast.success('Chat imported successfully');
+                    await importChat(data.description || t('importChat.importedDescription'), data.messages);
+                    toast.success(t('importChat.success'));
 
                     return;
                   }
 
-                  toast.error('Invalid chat file format');
+                  toast.error(t('importChat.invalidFormat'));
                 } catch (error: unknown) {
                   if (error instanceof Error) {
-                    toast.error('Failed to parse chat file: ' + error.message);
+                    toast.error(t('importChat.parseError', { message: error.message }));
                   } else {
-                    toast.error('Failed to parse chat file');
+                    toast.error(t('importChat.parseErrorGeneric'));
                   }
                 }
               };
-              reader.onerror = () => toast.error('Failed to read chat file');
+              reader.onerror = () => toast.error(t('importChat.readError'));
               reader.readAsText(file);
             } catch (error) {
-              toast.error(error instanceof Error ? error.message : 'Failed to import chat');
+              toast.error(error instanceof Error ? error.message : t('importChat.importError'));
             }
             e.target.value = ''; // Reset file input
           } else {
-            toast.error('Something went wrong');
+            toast.error(t('importChat.genericError'));
           }
         }}
       />
@@ -76,7 +83,7 @@ export function ImportButtons(importChat: ((description: string, messages: Messa
             )}
           >
             <span className="i-ph:upload-simple w-4 h-4" />
-            Import Chat
+            {t('importChat.button')}
           </Button>
           <ImportFolderButton
             importChat={importChat}

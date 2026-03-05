@@ -10,6 +10,7 @@ import { useChatHistory } from '~/lib/persistence';
 import { createCommandsMessage, detectProjectCommands, escapeBoltTags } from '~/utils/projectCommands';
 import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 const IGNORE_PATTERNS = [
   'node_modules/**',
@@ -42,6 +43,7 @@ export function GitUrlImport() {
   const { ready: gitReady, gitClone } = useGit();
   const [imported, setImported] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation('chat');
 
   const importRepo = async (repoUrl?: string) => {
     if (!gitReady && !historyReady) {
@@ -139,7 +141,7 @@ ${escapeBoltTags(file.content)}
       {() => (
         <>
           <Chat />
-          {loading && <LoadingOverlay message="Please wait while we clone the repository..." />}
+          {loading && <LoadingOverlay message={t('gitClone.cloningMsg')} />}
         </>
       )}
     </ClientOnly>

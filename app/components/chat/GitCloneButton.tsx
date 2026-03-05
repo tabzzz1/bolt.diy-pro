@@ -4,6 +4,7 @@ import type { Message } from 'ai';
 import { detectProjectCommands, createCommandsMessage, escapeBoltTags } from '~/utils/projectCommands';
 import { generateId } from '~/utils/fileUtils';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
 
@@ -48,6 +49,7 @@ interface GitCloneButtonProps {
 }
 
 export default function GitCloneButton({ importChat, className }: GitCloneButtonProps) {
+  const { t } = useTranslation('chat');
   const { ready, gitClone } = useGit();
   const [loading, setLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -154,7 +156,7 @@ ${escapeBoltTags(file.content)}
       }
     } catch (error) {
       console.error('Error during import:', error);
-      toast.error('Failed to import repository');
+      toast.error(t('gitClone.cloneError'));
     } finally {
       setLoading(false);
     }
@@ -167,7 +169,7 @@ ${escapeBoltTags(file.content)}
           setSelectedProvider(null);
           setIsDialogOpen(true);
         }}
-        title="Clone a repo"
+        title={t('gitClone.button')}
         variant="default"
         size="lg"
         className={classNames(
@@ -181,7 +183,7 @@ ${escapeBoltTags(file.content)}
         )}
         disabled={!ready || loading}
       >
-        Clone a repo
+        {t('gitClone.button')}
         <div className="flex items-center gap-1 ml-2">
           <Github className="w-4 h-4" />
           <GitBranch className="w-4 h-4" />
@@ -195,7 +197,7 @@ ${escapeBoltTags(file.content)}
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-                  Choose Repository Provider
+                  {t('gitClone.chooseProvider')}
                 </h3>
                 <button
                   onClick={() => setIsDialogOpen(false)}
@@ -219,7 +221,7 @@ ${escapeBoltTags(file.content)}
                         GitHub
                       </div>
                       <div className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                        Clone from GitHub repositories
+                        {t('gitClone.githubDesc')}
                       </div>
                     </div>
                   </div>
@@ -238,7 +240,7 @@ ${escapeBoltTags(file.content)}
                         GitLab
                       </div>
                       <div className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                        Clone from GitLab repositories
+                        {t('gitClone.gitlabDesc')}
                       </div>
                     </div>
                   </div>
@@ -260,10 +262,10 @@ ${escapeBoltTags(file.content)}
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-                    Import GitHub Repository
+                    {t('gitClone.importGithubTitle')}
                   </h3>
                   <p className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                    Clone a repository from GitHub to your workspace
+                    {t('gitClone.importGithubSubtitle')}
                   </p>
                 </div>
               </div>
@@ -296,10 +298,10 @@ ${escapeBoltTags(file.content)}
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-                    Import GitLab Repository
+                    {t('gitClone.importGitlabTitle')}
                   </h3>
                   <p className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                    Clone a repository from GitLab to your workspace
+                    {t('gitClone.importGitlabSubtitle')}
                   </p>
                 </div>
               </div>
@@ -321,7 +323,7 @@ ${escapeBoltTags(file.content)}
         </div>
       )}
 
-      {loading && <LoadingOverlay message="Please wait while we clone the repository..." />}
+      {loading && <LoadingOverlay message={t('gitClone.cloningMsg')} />}
     </>
   );
 }

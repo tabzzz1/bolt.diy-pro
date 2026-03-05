@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStore } from '@nanostores/react';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DeployButton } from '~/components/deploy/DeployButton';
@@ -8,6 +9,7 @@ interface HeaderActionButtonsProps {
 }
 
 export function HeaderActionButtons({ chatStarted: _chatStarted }: HeaderActionButtonsProps) {
+  const { t } = useTranslation('chat');
   const [activePreviewIndex] = useState(0);
   const previews = useStore(workbenchStore.previews);
   const activePreview = previews[activePreviewIndex];
@@ -27,10 +29,10 @@ export function HeaderActionButtons({ chatStarted: _chatStarted }: HeaderActionB
               window.open('https://github.com/stackblitz-labs/bolt.diy/issues/new?template=bug_report.yml', '_blank')
             }
             className="rounded-l-md items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-accent-500 text-white hover:text-bolt-elements-item-contentAccent [&:not(:disabled,.disabled)]:hover:bg-bolt-elements-button-primary-backgroundHover outline-accent-500 flex gap-1.5"
-            title="Report Bug"
+            title={t('header.reportBug')}
           >
             <div className="i-ph:bug" />
-            <span>Report Bug</span>
+            <span>{t('header.reportBug')}</span>
           </button>
           <div className="w-px bg-bolt-elements-borderColor" />
           <button
@@ -43,10 +45,10 @@ export function HeaderActionButtons({ chatStarted: _chatStarted }: HeaderActionB
               }
             }}
             className="rounded-r-md items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-accent-500 text-white hover:text-bolt-elements-item-contentAccent [&:not(:disabled,.disabled)]:hover:bg-bolt-elements-button-primary-backgroundHover outline-accent-500 flex gap-1.5"
-            title="Download Debug Log"
+            title={t('header.downloadDebugLog')}
           >
             <div className="i-ph:download" />
-            <span>Debug Log</span>
+            <span>{t('header.debugLog')}</span>
           </button>
         </div>
       )}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Dialog, DialogTitle, DialogDescription, DialogRoot } from './Dialog';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
@@ -11,6 +12,7 @@ export interface ColorSchemeDialogProps {
 }
 
 export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignScheme, designScheme }) => {
+  const { t } = useTranslation('chat');
   const [palette, setPalette] = useState<{ [key: string]: string }>(() => {
     if (designScheme?.palette) {
       return { ...defaultDesignScheme.palette, ...designScheme.palette };
@@ -64,14 +66,14 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-bolt-elements-textPrimary flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-bolt-elements-item-contentAccent"></div>
-          Color Palette
+          {t('colorScheme.colorPaletteTitle')}
         </h3>
         <button
           onClick={handleReset}
           className="text-sm bg-transparent hover:bg-bolt-elements-bg-depth-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary rounded-lg flex items-center gap-2 transition-all duration-200"
         >
           <span className="i-ph:arrow-clockwise text-sm" />
-          Reset
+          {t('colorScheme.reset')}
         </button>
       </div>
 
@@ -88,7 +90,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
                 onClick={() => document.getElementById(`color-input-${role.key}`)?.click()}
                 role="button"
                 tabIndex={0}
-                aria-label={`Change ${role.label} color`}
+                aria-label={t(`colorScheme.palette.${role.key}.label` as any)}
               />
               <input
                 id={`color-input-${role.key}`}
@@ -103,9 +105,11 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-bolt-elements-textPrimary transition-colors">{role.label}</div>
+              <div className="font-semibold text-bolt-elements-textPrimary transition-colors">
+                {t(`colorScheme.palette.${role.key}.label` as any)}
+              </div>
               <div className="text-sm text-bolt-elements-textSecondary line-clamp-2 leading-relaxed">
-                {role.description}
+                {t(`colorScheme.palette.${role.key}.description` as any)}
               </div>
               <div className="text-xs text-bolt-elements-textTertiary font-mono mt-1 px-2 py-1 bg-bolt-elements-bg-depth-1 rounded-md inline-block">
                 {palette[role.key]}
@@ -121,7 +125,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-bolt-elements-textPrimary flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-bolt-elements-item-contentAccent"></div>
-        Typography
+        {t('colorScheme.typographyTitle')}
       </h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
@@ -150,7 +154,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
                   font.includes(f.key) ? 'text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textSecondary'
                 }`}
               >
-                {f.label}
+                {t(`colorScheme.fonts.${f.key}` as any)}
               </div>
               {font.includes(f.key) && (
                 <div className="w-6 h-6 mx-auto bg-bolt-elements-item-contentAccent rounded-full flex items-center justify-center">
@@ -168,7 +172,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-bolt-elements-textPrimary flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-bolt-elements-item-contentAccent"></div>
-        Design Features
+        {t('colorScheme.designFeaturesTitle')}
       </h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
@@ -258,7 +262,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
                   </div>
 
                   <div className="text-center">
-                    <div className="font-semibold">{f.label}</div>
+                    <div className="font-semibold">{t(`colorScheme.features.${f.key}` as any)}</div>
                     {isSelected && <div className="mt-2 w-8 h-1 bg-current rounded-full mx-auto opacity-60" />}
                   </div>
                 </div>
@@ -270,9 +274,19 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
     </div>
   );
 
+  const tabs = [
+    { key: 'colors' as const, labelKey: 'colorScheme.tabColors' as const, icon: 'i-ph:palette' },
+    { key: 'typography' as const, labelKey: 'colorScheme.tabTypography' as const, icon: 'i-ph:text-aa' },
+    { key: 'features' as const, labelKey: 'colorScheme.tabFeatures' as const, icon: 'i-ph:magic-wand' },
+  ];
+
   return (
     <div>
-      <IconButton title="Design Palette" className="transition-all" onClick={() => setIsDialogOpen(!isDialogOpen)}>
+      <IconButton
+        title={t('colorScheme.buttonTitle')}
+        className="transition-all"
+        onClick={() => setIsDialogOpen(!isDialogOpen)}
+      >
         <div className="i-ph:palette text-xl"></div>
       </IconButton>
 
@@ -281,24 +295,19 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
           <div className="py-4 px-4 min-w-[480px] max-w-[90vw] max-h-[85vh] flex flex-col gap-6 overflow-hidden">
             <div className="">
               <DialogTitle className="text-2xl font-bold text-bolt-elements-textPrimary">
-                Design Palette & Features
+                {t('colorScheme.dialogTitle')}
               </DialogTitle>
               <DialogDescription className="text-bolt-elements-textSecondary leading-relaxed">
-                Customize your color palette, typography, and design features. These preferences will guide the AI in
-                creating designs that match your style.
+                {t('colorScheme.dialogDescription')}
               </DialogDescription>
             </div>
 
             {/* Navigation Tabs */}
             <div className="flex gap-1 p-1 bg-bolt-elements-bg-depth-3 rounded-xl">
-              {[
-                { key: 'colors', label: 'Colors', icon: 'i-ph:palette' },
-                { key: 'typography', label: 'Typography', icon: 'i-ph:text-aa' },
-                { key: 'features', label: 'Features', icon: 'i-ph:magic-wand' },
-              ].map((tab) => (
+              {tabs.map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveSection(tab.key as any)}
+                  onClick={() => setActiveSection(tab.key)}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
                     activeSection === tab.key
                       ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary shadow-md'
@@ -306,7 +315,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
                   }`}
                 >
                   <span className={`${tab.icon} text-lg`} />
-                  <span>{tab.label}</span>
+                  <span>{t(tab.labelKey)}</span>
                 </button>
               ))}
             </div>
@@ -321,18 +330,22 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
             {/* Action Buttons */}
             <div className="flex justify-between items-center">
               <div className="text-sm text-bolt-elements-textSecondary">
-                {Object.keys(palette).length} colors • {font.length} fonts • {features.length} features
+                {t('colorScheme.statsText', {
+                  colors: Object.keys(palette).length,
+                  fonts: font.length,
+                  features: features.length,
+                })}
               </div>
               <div className="flex gap-3">
                 <Button variant="secondary" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
+                  {t('colorScheme.cancel')}
                 </Button>
                 <Button
                   variant="ghost"
                   onClick={handleSave}
                   className="bg-bolt-elements-button-primary-background hover:bg-bolt-elements-button-primary-backgroundHover text-bolt-elements-button-primary-text"
                 >
-                  Save Changes
+                  {t('colorScheme.saveChanges')}
                 </Button>
               </div>
             </div>

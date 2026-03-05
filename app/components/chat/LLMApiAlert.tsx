@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import type { LlmErrorAlertType } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
 
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function LlmErrorAlert({ alert, clearAlert }: Props) {
+  const { t } = useTranslation('chat');
   const { title, description, provider, errorType } = alert;
 
   const getErrorIcon = () => {
@@ -26,13 +28,13 @@ export default function LlmErrorAlert({ alert, clearAlert }: Props) {
   const getErrorMessage = () => {
     switch (errorType) {
       case 'authentication':
-        return `Authentication failed with ${provider}. Please check your API key.`;
+        return t('llmError.authFailed', { provider });
       case 'rate_limit':
-        return `Rate limit exceeded for ${provider}. Please wait before retrying.`;
+        return t('llmError.rateLimited', { provider });
       case 'quota':
-        return `Quota exceeded for ${provider}. Please check your account limits.`;
+        return t('llmError.quotaExceeded', { provider });
       default:
-        return 'An error occurred while processing your request.';
+        return t('llmError.genericError');
     }
   };
 
@@ -75,7 +77,7 @@ export default function LlmErrorAlert({ alert, clearAlert }: Props) {
 
               {description && (
                 <div className="text-xs text-bolt-elements-textSecondary p-2 bg-bolt-elements-background-depth-3 rounded mt-4 mb-4">
-                  Error Details: {description}
+                  {t('alert.errorDetails')} {description}
                 </div>
               )}
             </motion.div>
@@ -97,7 +99,7 @@ export default function LlmErrorAlert({ alert, clearAlert }: Props) {
                     'text-bolt-elements-button-secondary-text',
                   )}
                 >
-                  Dismiss
+                  {t('alert.dismiss')}
                 </button>
               </div>
             </motion.div>

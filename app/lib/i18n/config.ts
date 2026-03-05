@@ -28,7 +28,7 @@ i18n.use(initReactI18next).init({
   lng: getInitialLanguage(),
   fallbackLng: 'en',
   defaultNS: 'sidebar',
-  ns: ['sidebar', 'settings'],
+  ns: ['sidebar', 'settings', 'chat'],
   interpolation: {
     escapeValue: false,
   },
