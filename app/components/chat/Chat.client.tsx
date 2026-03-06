@@ -6,7 +6,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { description, useChatHistory } from '~/lib/persistence';
-import { chatStore } from '~/lib/stores/chat';
+import { chatStore, editStore, cancelEditing } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
@@ -191,10 +191,48 @@ export const ChatImpl = memo(
       }
     }, [model, provider, searchParams]);
 
+    // ── Auto-send pending edit message after rewind completes ────────────
+    useEffect(() => {
+      const pendingEdit = sessionStorage.getItem('__bolt_pending_edit_message');
+
+      if (pendingEdit && initialMessages.length > 0) {
+        sessionStorage.removeItem('__bolt_pending_edit_message');
+
+        // Small delay to ensure rewind/snapshot restore has completed
+        setTimeout(() => {
+          const messageText = `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${pendingEdit}`;
+          append({
+            role: 'user',
+            content: messageText,
+          });
+        }, 500);
+      }
+    }, [initialMessages]);
+
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages } = useMessageParser();
 
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
+
+    // ── Edit-mode handling ──────────────────────────────────────────────
+    const editState = useStore(editStore);
+
+    // When entering edit mode, fill the input box with the message content
+    useEffect(() => {
+      if (editState.isEditing && editState.content) {
+        setInput(editState.content);
+
+        // Focus the textarea after a tick so content is rendered
+        requestAnimationFrame(() => {
+          const textarea = textareaRef.current;
+
+          if (textarea) {
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+          }
+        });
+      }
+    }, [editState.isEditing, editState.messageIndex]); // Trigger on edit start or target change
 
     useEffect(() => {
       chatStore.setKey('started', initialMessages.length > 0);
@@ -395,6 +433,35 @@ export const ChatImpl = memo(
 
       if (isLoading) {
         abort();
+        return;
+      }
+
+      // ── Edit-mode send: rewind to before the edited message then auto-send ──
+      if (editState.isEditing) {
+        const editIndex = editState.messageIndex;
+
+        // Save the new text for auto-send after page reloads with rewind
+        sessionStorage.setItem('__bolt_pending_edit_message', messageContent.trim());
+
+        // Clear edit state and input
+        cancelEditing();
+        setInput('');
+        Cookies.remove(PROMPT_COOKIE_KEY);
+
+        // Find the message ID to rewind to (the one right before the edited user message)
+        const prevMessageId = messages[editIndex - 1]?.id;
+
+        if (prevMessageId) {
+          // Use the existing rewind mechanism (URL param + page reload)
+          const searchParams = new URLSearchParams(window.location.search);
+          searchParams.set('rewindTo', prevMessageId);
+          window.location.search = searchParams.toString();
+        } else {
+          // Edge case: editing the very first message — can't rewind further
+          toast.error('Cannot edit the first message this way');
+          sessionStorage.removeItem('__bolt_pending_edit_message');
+        }
+
         return;
       }
 
@@ -679,6 +746,11 @@ export const ChatImpl = memo(
         setSelectedElement={setSelectedElement}
         addToolResult={addToolResult}
         onWebSearchResult={handleWebSearchResult}
+        isEditing={editState.isEditing}
+        onCancelEdit={() => {
+          cancelEditing();
+          setInput('');
+        }}
       />
     );
   },

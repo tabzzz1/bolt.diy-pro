@@ -50,7 +50,7 @@ const zh = {
       title: '创意从这里开始',
       subtitle: '让创意在瞬间成型，或为现有项目提供帮助。',
     },
-    scrollToBottom: '跳到最新消息',
+
     assistantLabel: 'Bolt',
     tokenCount: '{{count}} tokens',
     rewindTooltip: '回退到此消息',
@@ -69,6 +69,7 @@ const zh = {
       deleteConversationDesc: '这是第一条消息，删除它将移除整个对话。此操作无法撤销。',
       deleteMessageTitle: '删除消息',
       deleteMessageDesc: '从此处开始的所有消息将被移除，项目将回退到之前的状态。此操作无法撤销。',
+      cancelEdit: '取消编辑',
     },
     textarea: {
       placeholderBuild: '今天 Bolt 能帮你做什么？',

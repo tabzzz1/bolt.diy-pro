@@ -50,7 +50,7 @@ const en = {
       title: 'Where ideas begin',
       subtitle: 'Bring ideas to life in seconds or get help on existing projects.',
     },
-    scrollToBottom: 'Go to last message',
+
     assistantLabel: 'Bolt',
     tokenCount: '{{count}} tokens',
     rewindTooltip: 'Revert to this message',
@@ -66,9 +66,12 @@ const en = {
       confirmDelete: 'Delete',
       deleteFailed: 'Failed to delete',
       deleteConversationTitle: 'Delete Conversation',
-      deleteConversationDesc: 'This is the first message. Deleting it will remove the entire conversation. This action cannot be undone.',
+      deleteConversationDesc:
+        'This is the first message. Deleting it will remove the entire conversation. This action cannot be undone.',
       deleteMessageTitle: 'Delete Message',
-      deleteMessageDesc: 'Messages from this point onward will be removed, and the project will revert to its previous state. This action cannot be undone.',
+      deleteMessageDesc:
+        'Messages from this point onward will be removed, and the project will revert to its previous state. This action cannot be undone.',
+      cancelEdit: 'Cancel editing',
     },
     textarea: {
       placeholderBuild: 'How can Bolt help you today?',

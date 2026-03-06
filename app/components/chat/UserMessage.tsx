@@ -23,6 +23,10 @@ interface UserMessageProps {
     | undefined;
   /** Callback to delete this message */
   onDelete?: () => void;
+  /** Callback to edit this message — receives the stripped display text */
+  onEdit?: (textContent: string) => void;
+  /** Whether this message is currently being edited */
+  isEditing?: boolean;
 }
 
 function UserAvatar({ profile }: { profile: any }) {
@@ -45,7 +49,7 @@ function UserAvatar({ profile }: { profile: any }) {
   );
 }
 
-export function UserMessage({ content, parts, onDelete }: UserMessageProps) {
+export function UserMessage({ content, parts, onDelete, onEdit, isEditing }: UserMessageProps) {
   const profile = useStore(profileStore);
 
   // Extract images from parts - look for file parts with image mime types
@@ -61,7 +65,11 @@ export function UserMessage({ content, parts, onDelete }: UserMessageProps) {
     return (
       <div className="group flex items-start justify-end gap-2 ml-auto max-w-full min-w-0">
         <div className="flex flex-col max-w-[85%] min-w-0">
-          <div className="bg-bolt-elements-prompt-background border border-bolt-elements-borderColor/60 px-4 py-3 rounded-2xl rounded-tr-md shadow-sm overflow-hidden text-sm lg:text-base">
+          <div
+            className={`bg-bolt-elements-prompt-background px-4 py-3 rounded-2xl rounded-tr-md shadow-sm overflow-hidden text-sm lg:text-base transition-all duration-200 ${
+              isEditing ? 'border-2 border-dashed border-accent-500' : 'border border-bolt-elements-borderColor/60'
+            }`}
+          >
             {textContent && (
               <div className="max-h-[60vh] overflow-y-auto modern-scrollbar break-words">
                 <Markdown html>{textContent}</Markdown>
@@ -78,7 +86,7 @@ export function UserMessage({ content, parts, onDelete }: UserMessageProps) {
             ))}
           </div>
           <div className="mt-1 pr-1">
-            <UserMessageActions content={textContent} onDelete={onDelete} />
+            <UserMessageActions content={textContent} onDelete={onDelete} onEdit={() => onEdit?.(textContent)} />
           </div>
         </div>
         <UserAvatar profile={profile} />
@@ -110,13 +118,17 @@ export function UserMessage({ content, parts, onDelete }: UserMessageProps) {
             ))}
           </div>
         )}
-        <div className="bg-bolt-elements-prompt-background border border-bolt-elements-borderColor/60 px-4 py-3 rounded-2xl rounded-tr-md shadow-sm overflow-hidden text-sm lg:text-base min-w-0">
+        <div
+          className={`bg-bolt-elements-prompt-background px-4 py-3 rounded-2xl rounded-tr-md shadow-sm overflow-hidden text-sm lg:text-base min-w-0 transition-all duration-200 ${
+            isEditing ? 'border-2 border-dashed border-accent-500' : 'border border-bolt-elements-borderColor/60'
+          }`}
+        >
           <div className="max-h-[60vh] overflow-y-auto modern-scrollbar break-words">
             <Markdown html>{textContent}</Markdown>
           </div>
         </div>
         <div className="mt-1 pr-1">
-          <UserMessageActions content={textContent} onDelete={onDelete} />
+          <UserMessageActions content={textContent} onDelete={onDelete} onEdit={() => onEdit?.(textContent)} />
         </div>
       </div>
       <UserAvatar profile={profile} />

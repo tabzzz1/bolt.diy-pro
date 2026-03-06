@@ -29,7 +29,7 @@ import type { ProgressAnnotation } from '~/types/context';
 import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
-import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
+import { StickToBottom } from '~/lib/hooks';
 import { ChatBox } from './ChatBox';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -94,6 +94,10 @@ interface BaseChatProps {
   setSelectedElement?: (element: ElementInfo | null) => void;
   addToolResult?: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
   onWebSearchResult?: (result: string) => void;
+  /** Whether the chat is in edit-message mode */
+  isEditing?: boolean;
+  /** Callback to cancel the current edit */
+  onCancelEdit?: () => void;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -144,6 +148,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         throw new Error('addToolResult not implemented');
       },
       onWebSearchResult,
+      isEditing,
+      onCancelEdit,
     },
     ref,
   ) => {
@@ -595,18 +601,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         data-chat-visible={showChat}
       >
         <ClientOnly>{() => <Menu />}</ClientOnly>
-        <div className={classNames('flex w-full h-full', { 'overflow-y-auto modern-scrollbar': !chatStarted, 'overflow-hidden': chatStarted })}>
+        <div
+          className={classNames('flex w-full h-full', {
+            'overflow-y-auto modern-scrollbar': !chatStarted,
+            'overflow-hidden': chatStarted,
+          })}
+        >
           <div
             ref={chatPanelRef}
-            className={classNames(
-              styles.Chat,
-              'flex flex-col h-full transition-[width] duration-300 ease-in-out',
-              {
-                'flex-grow': !chatStarted,
-                'flex-shrink-0': chatStarted,
-                'overflow-hidden': chatStarted,
-              },
-            )}
+            className={classNames(styles.Chat, 'flex flex-col h-full transition-[width] duration-300 ease-in-out', {
+              'flex-grow': !chatStarted,
+              'flex-shrink-0': chatStarted,
+              'overflow-hidden': chatStarted,
+            })}
             style={chatStarted ? { width: isChatCollapsed ? '0px' : 'var(--chat-min-width)' } : undefined}
           >
             {!chatStarted && (
@@ -644,7 +651,37 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     ) : null;
                   }}
                 </ClientOnly>
-                <ScrollToBottom />
+                {/* Cancel edit button with gradient overlay — sticks to bottom of message scroll area */}
+                {isEditing && (
+                  <div className="sticky bottom-0 left-0 right-0 z-50 flex flex-col items-center">
+                    {/* Top gradient: transparent → semi-white */}
+                    <div className="w-full h-8 bg-gradient-to-b from-transparent to-bolt-elements-background-depth-1/80 pointer-events-none" />
+                    {/* Button area with solid-ish background */}
+                    <div className="w-full flex justify-center bg-bolt-elements-background-depth-1/80 pb-2 pt-1">
+                      <button
+                        onClick={onCancelEdit}
+                        className="
+                          flex items-center gap-1.5 px-4 py-1.5 rounded-full
+                          text-sm font-medium
+                          bg-bolt-elements-background-depth-2
+                          border border-bolt-elements-borderColor
+                          text-bolt-elements-textSecondary
+                          hover:text-bolt-elements-textPrimary
+                          hover:bg-bolt-elements-background-depth-3
+                          hover:border-accent-500/50
+                          shadow-sm
+                          transition-all duration-200
+                          cursor-pointer
+                          focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-accent-500/50
+                        "
+                        aria-label={t('actions.cancelEdit')}
+                      >
+                        <div className="i-ph:x text-xs" />
+                        {t('actions.cancelEdit')}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </StickToBottom.Content>
               <div
                 className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
@@ -806,22 +843,4 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   },
 );
 
-function ScrollToBottom() {
-  const { isAtBottom, scrollToBottom } = useStickToBottomContext();
-  const { t } = useTranslation('chat');
 
-  return (
-    !isAtBottom && (
-      <>
-        <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-bolt-elements-background-depth-1 to-transparent h-20 z-10" />
-        <button
-          className="sticky z-50 bottom-0 left-0 right-0 text-4xl rounded-lg px-1.5 py-0.5 flex items-center justify-center mx-auto gap-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm"
-          onClick={() => scrollToBottom()}
-        >
-          {t('scrollToBottom')}
-          <span className="i-ph:arrow-down animate-bounce" />
-        </button>
-      </>
-    )
-  );
-}

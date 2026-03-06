@@ -12,6 +12,8 @@ import type { ForwardedRef } from 'react';
 import type { ProviderInfo } from '~/types/model';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogRoot, DialogTitle, DialogDescription, DialogButton } from '~/components/ui/Dialog';
+import { useStore } from '@nanostores/react';
+import { editStore, startEditing } from '~/lib/stores/chat';
 
 interface MessagesProps {
   id?: string;
@@ -31,6 +33,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
     const { id, isStreaming = false, messages = [] } = props;
     const location = useLocation();
     const { t } = useTranslation('chat');
+    const editState = useStore(editStore);
 
     // State for delete confirmation dialog
     const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -66,9 +69,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
     const handleDeleteMessage = useCallback(
       (messageIndex: number) => {
         // Find the first non-hidden user message index
-        const firstVisibleUserIdx = messages.findIndex(
-          (m) => m.role === 'user' && !m.annotations?.includes('hidden'),
-        );
+        const firstVisibleUserIdx = messages.findIndex((m) => m.role === 'user' && !m.annotations?.includes('hidden'));
         const isFirstMessage = messageIndex === firstVisibleUserIdx;
 
         setDeleteConfirm({ open: true, messageIndex, isFirstMessage });
@@ -115,101 +116,107 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
       }
     }, [deleteConfirm, messages, t]);
 
+    /**
+     * Enters edit mode for a user message.
+     * Sets the global editStore so Chat.client can fill input + handle send.
+     */
+    const handleEditMessage = useCallback((messageIndex: number, textContent: string) => {
+      startEditing(messageIndex, textContent);
+    }, []);
+
     return (
       <>
-      <div id={id} className={props.className} ref={ref}>
-        {messages.length > 0
-          ? messages.map((message, index) => {
-              const { role, content, id: messageId, annotations, parts } = message;
-              const isUserMessage = role === 'user';
-              const isFirst = index === 0;
-              const isHidden = annotations?.includes('hidden');
+        <div id={id} className={props.className} ref={ref}>
+          {messages.length > 0
+            ? messages.map((message, index) => {
+                const { role, content, id: messageId, annotations, parts } = message;
+                const isUserMessage = role === 'user';
+                const isFirst = index === 0;
+                const isHidden = annotations?.includes('hidden');
 
-              if (isHidden) {
-                return <Fragment key={index} />;
-              }
+                if (isHidden) {
+                  return <Fragment key={index} />;
+                }
 
-              return (
-                <div
-                  key={index}
-                  className={classNames('flex w-full min-w-0', {
-                    'mt-2': !isFirst && isUserMessage,
-                    'mt-1': !isFirst && !isUserMessage,
-                    'justify-end': isUserMessage,
-                    'justify-start': !isUserMessage,
-                  })}
-                >
+                return (
                   <div
-                    className={classNames('w-full min-w-0', {
-                      'py-2': isUserMessage,
-                      'py-3 px-1': !isUserMessage,
+                    key={index}
+                    className={classNames('flex w-full min-w-0', {
+                      'mt-2': !isFirst && isUserMessage,
+                      'mt-1': !isFirst && !isUserMessage,
+                      'justify-end': isUserMessage,
+                      'justify-start': !isUserMessage,
                     })}
                   >
-                    {isUserMessage ? (
-                      <UserMessage
-                        content={content}
-                        parts={parts}
-                        onDelete={() => handleDeleteMessage(index)}
-                      />
-                    ) : (
-                      <AssistantMessage
-                        content={content}
-                        annotations={message.annotations}
-                        messageId={messageId}
-                        onRewind={handleRewind}
-                        onFork={handleFork}
-                        append={props.append}
-                        chatMode={props.chatMode}
-                        setChatMode={props.setChatMode}
-                        model={props.model}
-                        provider={props.provider}
-                        parts={parts}
-                        addToolResult={props.addToolResult}
-                        isStreaming={isStreaming && index === messages.length - 1}
-                      />
-                    )}
+                    <div
+                      className={classNames('w-full min-w-0', {
+                        'py-2': isUserMessage,
+                        'py-3 px-1': !isUserMessage,
+                      })}
+                    >
+                      {isUserMessage ? (
+                        <UserMessage
+                          content={content}
+                          parts={parts}
+                          onDelete={() => handleDeleteMessage(index)}
+                          onEdit={(textContent) => handleEditMessage(index, textContent)}
+                          isEditing={editState.isEditing && editState.messageIndex === index}
+                        />
+                      ) : (
+                        <AssistantMessage
+                          content={content}
+                          annotations={message.annotations}
+                          messageId={messageId}
+                          onRewind={handleRewind}
+                          onFork={handleFork}
+                          append={props.append}
+                          chatMode={props.chatMode}
+                          setChatMode={props.setChatMode}
+                          model={props.model}
+                          provider={props.provider}
+                          parts={parts}
+                          addToolResult={props.addToolResult}
+                          isStreaming={isStreaming && index === messages.length - 1}
+                        />
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          : null}
-        {isStreaming && (
-          <div className="text-center w-full  text-bolt-elements-item-contentAccent i-svg-spinners:3-dots-fade text-4xl mt-4"></div>
-        )}
-      </div>
+                );
+              })
+            : null}
+          {isStreaming && (
+            <div className="text-center w-full  text-bolt-elements-item-contentAccent i-svg-spinners:3-dots-fade text-4xl mt-4"></div>
+          )}
+        </div>
 
-      {/* Delete confirmation dialog */}
-      <DialogRoot open={deleteConfirm.open} onOpenChange={(open) => !open && setDeleteConfirm((s) => ({ ...s, open: false }))}>
-        <Dialog
-          onClose={() => setDeleteConfirm((s) => ({ ...s, open: false }))}
-          onBackdrop={() => setDeleteConfirm((s) => ({ ...s, open: false }))}
+        {/* Delete confirmation dialog */}
+        <DialogRoot
+          open={deleteConfirm.open}
+          onOpenChange={(open) => !open && setDeleteConfirm((s) => ({ ...s, open: false }))}
         >
-          <div className="p-6">
-            <DialogTitle>
-              <div className="i-ph:warning-circle text-red-500 text-xl" />
-              {deleteConfirm.isFirstMessage
-                ? t('actions.deleteConversationTitle')
-                : t('actions.deleteMessageTitle')}
-            </DialogTitle>
-            <DialogDescription className="mt-3">
-              {deleteConfirm.isFirstMessage
-                ? t('actions.deleteConversationDesc')
-                : t('actions.deleteMessageDesc')}
-            </DialogDescription>
-            <div className="flex justify-end gap-2 mt-5">
-              <DialogButton
-                type="secondary"
-                onClick={() => setDeleteConfirm((s) => ({ ...s, open: false }))}
-              >
-                {t('actions.cancel')}
-              </DialogButton>
-              <DialogButton type="danger" onClick={confirmDelete}>
-                {t('actions.confirmDelete')}
-              </DialogButton>
+          <Dialog
+            onClose={() => setDeleteConfirm((s) => ({ ...s, open: false }))}
+            onBackdrop={() => setDeleteConfirm((s) => ({ ...s, open: false }))}
+          >
+            <div className="p-6">
+              <DialogTitle>
+                <div className="i-ph:warning-circle text-red-500 text-xl" />
+                {deleteConfirm.isFirstMessage ? t('actions.deleteConversationTitle') : t('actions.deleteMessageTitle')}
+              </DialogTitle>
+              <DialogDescription className="mt-3">
+                {deleteConfirm.isFirstMessage ? t('actions.deleteConversationDesc') : t('actions.deleteMessageDesc')}
+              </DialogDescription>
+              <div className="flex justify-end gap-2 mt-5">
+                <DialogButton type="secondary" onClick={() => setDeleteConfirm((s) => ({ ...s, open: false }))}>
+                  {t('actions.cancel')}
+                </DialogButton>
+                <DialogButton type="danger" onClick={confirmDelete}>
+                  {t('actions.confirmDelete')}
+                </DialogButton>
+              </div>
             </div>
-          </div>
-        </Dialog>
-      </DialogRoot>
+          </Dialog>
+        </DialogRoot>
       </>
     );
   },
