@@ -78,7 +78,10 @@ export const CodeBlock = memo(
             </button>
           )}
         </div>
-        <div dangerouslySetInnerHTML={{ __html: html ?? '' }}></div>
+        <div
+          className="max-w-full overflow-x-auto modern-scrollbar"
+          dangerouslySetInnerHTML={{ __html: html ?? '' }}
+        ></div>
       </div>
     );
   },

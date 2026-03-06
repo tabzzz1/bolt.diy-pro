@@ -65,7 +65,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
               return (
                 <div
                   key={index}
-                  className={classNames('flex w-full', {
+                  className={classNames('flex w-full min-w-0', {
                     'mt-2': !isFirst && isUserMessage,
                     'mt-1': !isFirst && !isUserMessage,
                     'justify-end': isUserMessage,
@@ -73,7 +73,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                   })}
                 >
                   <div
-                    className={classNames('w-full', {
+                    className={classNames('w-full min-w-0', {
                       'py-2': isUserMessage,
                       'py-3 px-1': !isUserMessage,
                     })}

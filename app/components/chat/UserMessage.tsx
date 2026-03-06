@@ -56,9 +56,13 @@ export function UserMessage({ content, parts }: UserMessageProps) {
     const textContent = stripMetadata(textItem?.text || '');
 
     return (
-      <div className="flex items-end justify-end gap-2 ml-auto max-w-[85%]">
-        <div className="flex flex-col gap-2 bg-bolt-elements-prompt-background border border-bolt-elements-borderColor/60 px-4 py-3 rounded-2xl rounded-br-md shadow-sm">
-          {textContent && <Markdown html>{textContent}</Markdown>}
+      <div className="flex items-end justify-end gap-2 ml-auto max-w-full min-w-0">
+        <div className="flex flex-col gap-2 bg-bolt-elements-prompt-background border border-bolt-elements-borderColor/60 px-4 py-3 rounded-2xl rounded-br-md shadow-sm overflow-hidden text-sm lg:text-base max-w-[85%] min-w-0">
+          {textContent && (
+            <div className="max-h-[60vh] overflow-y-auto modern-scrollbar break-words">
+              <Markdown html>{textContent}</Markdown>
+            </div>
+          )}
           {images.map((item, index) => (
             <img
               key={index}
@@ -77,14 +81,14 @@ export function UserMessage({ content, parts }: UserMessageProps) {
   const textContent = stripMetadata(content);
 
   return (
-    <div className="flex items-end justify-end gap-2 ml-auto max-w-[85%]">
-      <div className="flex flex-col gap-2">
+    <div className="flex items-end justify-end gap-2 ml-auto max-w-full min-w-0">
+      <div className="flex flex-col gap-2 max-w-[85%] min-w-0">
         {images.length > 0 && (
           <div className="flex gap-2.5 justify-end mb-1">
             {images.map((item, index) => (
               <div
                 key={index}
-                className="relative flex rounded-xl border border-bolt-elements-borderColor overflow-hidden shadow-sm"
+                className="relative flex rounded-xl border border-bolt-elements-borderColor overflow-hidden shadow-sm flex-shrink-0"
               >
                 <div className="h-20 w-20 bg-transparent outline-none">
                   <img
@@ -98,8 +102,10 @@ export function UserMessage({ content, parts }: UserMessageProps) {
             ))}
           </div>
         )}
-        <div className="bg-bolt-elements-prompt-background border border-bolt-elements-borderColor/60 px-4 py-3 rounded-2xl rounded-br-md shadow-sm">
-          <Markdown html>{textContent}</Markdown>
+        <div className="bg-bolt-elements-prompt-background border border-bolt-elements-borderColor/60 px-4 py-3 rounded-2xl rounded-br-md shadow-sm overflow-hidden text-sm lg:text-base min-w-0">
+          <div className="max-h-[60vh] overflow-y-auto modern-scrollbar break-words">
+            <Markdown html>{textContent}</Markdown>
+          </div>
         </div>
       </div>
       <UserAvatar profile={profile} />
