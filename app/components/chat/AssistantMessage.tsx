@@ -4,7 +4,6 @@ import type { JSONValue } from 'ai';
 import Popover from '~/components/ui/Popover';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
-import WithTooltip from '~/components/ui/Tooltip';
 import type { Message } from 'ai';
 import type { ProviderInfo } from '~/types/model';
 import type {
@@ -18,6 +17,7 @@ import type {
 import { ToolInvocations } from './ToolInvocations';
 import type { ToolCallAnnotation } from '~/types/context';
 import { useTranslation } from 'react-i18next';
+import { AssistantMessageActions } from './MessageActions';
 
 interface AssistantMessageProps {
   content: string;
@@ -34,6 +34,8 @@ interface AssistantMessageProps {
     | (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[]
     | undefined;
   addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+  /** Whether this message is currently being streamed */
+  isStreaming?: boolean;
 }
 
 function openArtifactInWorkbench(filePath: string) {
@@ -74,6 +76,7 @@ export const AssistantMessage = memo(
     provider,
     parts,
     addToolResult,
+    isStreaming,
   }: AssistantMessageProps) => {
     const { t } = useTranslation('chat');
 
@@ -106,7 +109,7 @@ export const AssistantMessage = memo(
     ) as ToolCallAnnotation[];
 
     return (
-      <div className="overflow-hidden w-full">
+      <div className="group overflow-hidden w-full">
         {/* Assistant header row */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -128,7 +131,9 @@ export const AssistantMessage = memo(
                 {chatSummary && (
                   <div className="max-w-chat">
                     <div className="summary max-h-96 flex flex-col">
-                      <h2 className="border border-bolt-elements-borderColor rounded-md p4">{t('artifact.chatSummaryHeading')}</h2>
+                      <h2 className="border border-bolt-elements-borderColor rounded-md p4">
+                        {t('artifact.chatSummaryHeading')}
+                      </h2>
                       <div style={{ zoom: 0.7 }} className="overflow-y-auto m4">
                         <Markdown>{chatSummary}</Markdown>
                       </div>
@@ -164,40 +169,13 @@ export const AssistantMessage = memo(
             )}
           </div>
 
-          {/* Right side: token usage + action buttons */}
-          <div className="flex items-center gap-3">
-            {usage && (
-              <div className="flex items-center gap-1 text-xs text-bolt-elements-textTertiary bg-bolt-elements-background-depth-2 px-2 py-0.5 rounded-full border border-bolt-elements-borderColor/40">
-                <div className="i-ph:coins text-xs" />
-                <span>{t('tokenCount', { count: usage.totalTokens })}</span>
-              </div>
-            )}
-
-            {(onRewind || onFork) && messageId && (
-              <div className="flex items-center gap-1">
-                {onRewind && (
-                  <WithTooltip tooltip={t('rewindTooltip')}>
-                    <button
-                      onClick={() => onRewind(messageId)}
-                      className="w-6 h-6 flex items-center justify-center rounded-md text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 transition-all cursor-pointer"
-                    >
-                      <div className="i-ph:arrow-u-up-left text-sm" />
-                    </button>
-                  </WithTooltip>
-                )}
-                {onFork && (
-                  <WithTooltip tooltip={t('forkTooltip')}>
-                    <button
-                      onClick={() => onFork(messageId)}
-                      className="w-6 h-6 flex items-center justify-center rounded-md text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 transition-all cursor-pointer"
-                    >
-                      <div className="i-ph:git-fork text-sm" />
-                    </button>
-                  </WithTooltip>
-                )}
-              </div>
-            )}
-          </div>
+          {/* Right side: token usage */}
+          {usage && (
+            <div className="flex items-center gap-1 text-xs text-bolt-elements-textTertiary bg-bolt-elements-background-depth-2 px-2 py-0.5 rounded-full border border-bolt-elements-borderColor/40">
+              <div className="i-ph:coins text-xs" />
+              <span>{t('tokenCount', { count: usage.totalTokens })}</span>
+            </div>
+          )}
         </div>
 
         {/* Message content */}
@@ -219,6 +197,15 @@ export const AssistantMessage = memo(
               addToolResult={addToolResult}
             />
           )}
+
+          {/* Bottom-left action bar — visible after streaming ends */}
+          <AssistantMessageActions
+            content={content}
+            messageId={messageId}
+            onRewind={onRewind}
+            onFork={onFork}
+            isStreaming={isStreaming}
+          />
         </div>
       </div>
     );

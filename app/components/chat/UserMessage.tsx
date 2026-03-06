@@ -6,6 +6,7 @@ import { MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 import { Markdown } from './Markdown';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
+import { UserMessageActions } from './MessageActions';
 import type {
   TextUIPart,
   ReasoningUIPart,
@@ -20,6 +21,8 @@ interface UserMessageProps {
   parts:
     | (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[]
     | undefined;
+  /** Callback to delete this message */
+  onDelete?: () => void;
 }
 
 function UserAvatar({ profile }: { profile: any }) {
@@ -42,7 +45,7 @@ function UserAvatar({ profile }: { profile: any }) {
   );
 }
 
-export function UserMessage({ content, parts }: UserMessageProps) {
+export function UserMessage({ content, parts, onDelete }: UserMessageProps) {
   const profile = useStore(profileStore);
 
   // Extract images from parts - look for file parts with image mime types
@@ -56,22 +59,27 @@ export function UserMessage({ content, parts }: UserMessageProps) {
     const textContent = stripMetadata(textItem?.text || '');
 
     return (
-      <div className="flex items-end justify-end gap-2 ml-auto max-w-full min-w-0">
-        <div className="flex flex-col gap-2 bg-bolt-elements-prompt-background border border-bolt-elements-borderColor/60 px-4 py-3 rounded-2xl rounded-br-md shadow-sm overflow-hidden text-sm lg:text-base max-w-[85%] min-w-0">
-          {textContent && (
-            <div className="max-h-[60vh] overflow-y-auto modern-scrollbar break-words">
-              <Markdown html>{textContent}</Markdown>
-            </div>
-          )}
-          {images.map((item, index) => (
-            <img
-              key={index}
-              src={`data:${item.mimeType};base64,${item.data}`}
-              alt={`Image ${index + 1}`}
-              className="max-w-full h-auto rounded-lg"
-              style={{ maxHeight: '512px', objectFit: 'contain' }}
-            />
-          ))}
+      <div className="group flex items-start justify-end gap-2 ml-auto max-w-full min-w-0">
+        <div className="flex flex-col max-w-[85%] min-w-0">
+          <div className="bg-bolt-elements-prompt-background border border-bolt-elements-borderColor/60 px-4 py-3 rounded-2xl rounded-tr-md shadow-sm overflow-hidden text-sm lg:text-base">
+            {textContent && (
+              <div className="max-h-[60vh] overflow-y-auto modern-scrollbar break-words">
+                <Markdown html>{textContent}</Markdown>
+              </div>
+            )}
+            {images.map((item, index) => (
+              <img
+                key={index}
+                src={`data:${item.mimeType};base64,${item.data}`}
+                alt={`Image ${index + 1}`}
+                className="max-w-full h-auto rounded-lg"
+                style={{ maxHeight: '512px', objectFit: 'contain' }}
+              />
+            ))}
+          </div>
+          <div className="mt-1 pr-1">
+            <UserMessageActions content={textContent} onDelete={onDelete} />
+          </div>
         </div>
         <UserAvatar profile={profile} />
       </div>
@@ -81,8 +89,8 @@ export function UserMessage({ content, parts }: UserMessageProps) {
   const textContent = stripMetadata(content);
 
   return (
-    <div className="flex items-end justify-end gap-2 ml-auto max-w-full min-w-0">
-      <div className="flex flex-col gap-2 max-w-[85%] min-w-0">
+    <div className="group flex items-start justify-end gap-2 ml-auto max-w-full min-w-0">
+      <div className="flex flex-col max-w-[85%] min-w-0">
         {images.length > 0 && (
           <div className="flex gap-2.5 justify-end mb-1">
             {images.map((item, index) => (
@@ -102,10 +110,13 @@ export function UserMessage({ content, parts }: UserMessageProps) {
             ))}
           </div>
         )}
-        <div className="bg-bolt-elements-prompt-background border border-bolt-elements-borderColor/60 px-4 py-3 rounded-2xl rounded-br-md shadow-sm overflow-hidden text-sm lg:text-base min-w-0">
+        <div className="bg-bolt-elements-prompt-background border border-bolt-elements-borderColor/60 px-4 py-3 rounded-2xl rounded-tr-md shadow-sm overflow-hidden text-sm lg:text-base min-w-0">
           <div className="max-h-[60vh] overflow-y-auto modern-scrollbar break-words">
             <Markdown html>{textContent}</Markdown>
           </div>
+        </div>
+        <div className="mt-1 pr-1">
+          <UserMessageActions content={textContent} onDelete={onDelete} />
         </div>
       </div>
       <UserAvatar profile={profile} />
