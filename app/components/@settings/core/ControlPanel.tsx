@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useStore } from '@nanostores/react';
 import * as RadixDialog from '@radix-ui/react-dialog';
+import { useTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 import { TabTile } from '~/components/@settings/shared/components/TabTile';
 import { useFeatures } from '~/lib/hooks/useFeatures';
@@ -46,6 +47,7 @@ const BetaLabel = () => (
 
 export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
   // State
+  const { t } = useTranslation('settings');
   const [activeTab, setActiveTab] = useState<TabType | null>(null);
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
   const [showTabManagement, setShowTabManagement] = useState(false);
@@ -118,6 +120,78 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
       setShowTabManagement(false);
     } else if (activeTab) {
       setActiveTab(null);
+    }
+  };
+
+  // Get localized tab label
+  const getLocalizedTabLabel = (tabId: TabType): string => {
+    switch (tabId) {
+      case 'profile':
+        return t('profile');
+      case 'settings':
+        return t('settings');
+      case 'notifications':
+        return t('notificationsTitle');
+      case 'features':
+        return t('features');
+      case 'data':
+        return t('dataManagement');
+      case 'cloud-providers':
+        return t('cloudProviders');
+      case 'local-providers':
+        return t('localProviders');
+      case 'github':
+        return t('github');
+      case 'gitlab':
+        return t('gitlab');
+      case 'netlify':
+        return t('netlify');
+      case 'vercel':
+        return t('vercel');
+      case 'supabase':
+        return t('supabase');
+      case 'event-logs':
+        return t('eventLogs');
+      case 'mcp':
+        return t('mcp');
+      default:
+        return TAB_LABELS[tabId];
+    }
+  };
+
+  // Get localized tab description
+  const getLocalizedTabDescription = (tabId: TabType): string => {
+    switch (tabId) {
+      case 'profile':
+        return t('profileDescription');
+      case 'settings':
+        return t('settingsDescription');
+      case 'notifications':
+        return t('notificationsDescription');
+      case 'features':
+        return t('featuresDescription');
+      case 'data':
+        return t('dataManagementDescription');
+      case 'cloud-providers':
+        return t('cloudProvidersDescription');
+      case 'local-providers':
+        return t('localProvidersDescription');
+      case 'github':
+        return t('githubDescription');
+      case 'gitlab':
+        return t('gitlabDescription');
+      case 'netlify':
+        return t('netlifyDescription');
+      case 'vercel':
+        return t('vercelDescription');
+      case 'supabase':
+        return t('supabaseDescription');
+      case 'event-logs':
+        return t('eventLogsDescription');
+      case 'mcp':
+        return t('mcpDescription');
+      default:
+        return TAB_DESCRIPTIONS[tabId];
     }
   };
 
@@ -224,14 +298,14 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
   return (
     <RadixDialog.Root open={open}>
       <RadixDialog.Portal>
-        <div className="fixed inset-0 flex items-center justify-center z-[100] modern-scrollbar">
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] modern-scrollbar">
           <RadixDialog.Overlay className="absolute inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm transition-opacity duration-200" />
 
           <RadixDialog.Content
             aria-describedby={undefined}
             onEscapeKeyDown={handleClose}
             onPointerDownOutside={handleClose}
-            className="relative z-[101]"
+            className="relative z-[10000]"
           >
             <div
               className={classNames(
@@ -261,7 +335,11 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
                       </button>
                     )}
                     <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                      {showTabManagement ? 'Tab Management' : activeTab ? TAB_LABELS[activeTab] : 'Control Panel'}
+                      {showTabManagement
+                        ? t('tabManagement')
+                        : activeTab
+                          ? getLocalizedTabLabel(activeTab)
+                          : t('controlPanel')}
                     </DialogTitle>
                   </div>
 
@@ -323,7 +401,8 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
                               isActive={activeTab === tab.id}
                               hasUpdate={getTabUpdateStatus(tab.id)}
                               statusMessage={getStatusMessage(tab.id)}
-                              description={TAB_DESCRIPTIONS[tab.id]}
+                              label={getLocalizedTabLabel(tab.id)}
+                              description={getLocalizedTabDescription(tab.id)}
                               isLoading={loadingTab === tab.id}
                               className="h-full relative"
                             >

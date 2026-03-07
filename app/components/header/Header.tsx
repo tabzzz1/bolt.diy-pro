@@ -5,10 +5,16 @@ import { classNames } from '~/utils/classNames';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import { isSidebarOpen } from '~/lib/stores/sidebar';
+import { useState } from 'react';
+import { SettingsButton } from '~/components/ui/SettingsButton';
+import { ControlPanel } from '~/components/@settings/core/ControlPanel';
+import { useTranslation } from 'react-i18next';
 
 export function Header() {
   const chat = useStore(chatStore);
   const isPinned = useStore(isSidebarOpen);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { t } = useTranslation('chat');
 
   const handleSidebarToggle = () => {
     isSidebarOpen.set(!isPinned);
@@ -16,16 +22,16 @@ export function Header() {
 
   return (
     <header
-      className={classNames('flex items-center px-4 border-b h-[var(--header-height)]', {
+      className={classNames('flex items-center px-4 border-b h-[var(--header-height)] relative', {
         'border-transparent': !chat.started,
         'border-bolt-elements-borderColor': chat.started,
       })}
     >
-      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary">
+      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary shrink-0">
         <button
           onClick={handleSidebarToggle}
           className={classNames(
-            'flex items-center justify-center w-8 h-8 rounded-md transition-colors cursor-pointer',
+            'flex items-center justify-center w-8 h-8 rounded-md transition-all active:scale-95 cursor-pointer',
             isPinned
               ? 'text-purple-500 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10'
               : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2',
@@ -34,26 +40,44 @@ export function Header() {
         >
           <div className="i-ph:sidebar-simple-duotone text-xl" />
         </button>
-        <a href="/" className="text-2xl font-semibold text-accent flex items-center">
+        <a
+          href="/"
+          className="text-2xl font-semibold text-accent flex items-center transition-transform active:scale-95"
+        >
           {/* <span className="i-bolt:logo-text?mask w-[46px] inline-block" /> */}
           <img src="/logo-light-styled.png" alt="logo" className="w-[90px] inline-block dark:hidden" />
           <img src="/logo-dark-styled.png" alt="logo" className="w-[90px] inline-block hidden dark:block" />
         </a>
       </div>
-      {chat.started && ( // Display ChatDescription and HeaderActionButtons only when the chat has started.
-        <>
-          <span className="flex-1 px-4 truncate text-center text-bolt-elements-textPrimary">
+
+      {chat.started && (
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[40%] px-4 w-full pointer-events-none">
+          <span className="block truncate text-center text-bolt-elements-textPrimary pointer-events-auto">
             <ClientOnly>{() => <ChatDescription />}</ClientOnly>
           </span>
-          <ClientOnly>
-            {() => (
-              <div className="">
-                <HeaderActionButtons chatStarted={chat.started} />
-              </div>
-            )}
-          </ClientOnly>
-        </>
+        </div>
       )}
+
+      <div className="flex-1" />
+
+      {chat.started && (
+        <ClientOnly>
+          {() => (
+            <div className="flex items-center gap-1">
+              <HeaderActionButtons chatStarted={chat.started} />
+            </div>
+          )}
+        </ClientOnly>
+      )}
+
+      <div className="flex items-center gap-2 ml-2">
+        <SettingsButton
+          onClick={() => setIsSettingsOpen(true)}
+          title={t('header.settings')}
+          label={t('header.settings')}
+        />
+      </div>
+      <ControlPanel open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </header>
   );
 }

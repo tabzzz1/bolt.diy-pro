@@ -15,6 +15,7 @@ import { useGitHubDeploy } from '~/components/deploy/GitHubDeploy.client';
 import { useGitLabDeploy } from '~/components/deploy/GitLabDeploy.client';
 import { GitHubDeploymentDialog } from '~/components/deploy/GitHubDeploymentDialog';
 import { GitLabDeploymentDialog } from '~/components/deploy/GitLabDeploymentDialog';
+import { useTranslation } from 'react-i18next';
 
 interface DeployButtonProps {
   onVercelDeploy?: () => Promise<void>;
@@ -48,6 +49,7 @@ export const DeployButton = ({
   const [gitlabDeploymentFiles, setGitlabDeploymentFiles] = useState<Record<string, string> | null>(null);
   const [githubProjectName, setGithubProjectName] = useState('');
   const [gitlabProjectName, setGitlabProjectName] = useState('');
+  const { t } = useTranslation('chat');
 
   const handleVercelDeployClick = async () => {
     setIsDeploying(true);
@@ -131,26 +133,26 @@ export const DeployButton = ({
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
             disabled={isDeploying || !activePreview || isStreaming}
-            className="rounded-md items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-accent-500 text-white hover:text-bolt-elements-item-contentAccent [&:not(:disabled,.disabled)]:hover:bg-bolt-elements-button-primary-backgroundHover outline-accent-500 flex gap-1.7"
+            className="rounded-md items-center justify-center [&:is(:disabled,.disabled)]:cursor-not-allowed [&:is(:disabled,.disabled)]:opacity-60 px-3 py-1.5 text-xs bg-accent-500 text-white hover:text-bolt-elements-item-contentAccent [&:not(:disabled,.disabled)]:hover:bg-bolt-elements-button-primary-backgroundHover outline-accent-500 flex gap-1.7 transition-all active:scale-95"
           >
-            {isDeploying ? `Deploying to ${deployingTo}...` : 'Deploy'}
+            {isDeploying ? t('header.deploying', { platform: deployingTo }) : t('header.deploy')}
             <span className={classNames('i-ph:caret-down transition-transform')} />
           </DropdownMenu.Trigger>
           <DropdownMenu.Content
             className={classNames(
               'z-[250]',
               'bg-bolt-elements-background-depth-2',
-              'rounded-lg shadow-lg',
+              'rounded-lg shadow-lg/40',
               'border border-bolt-elements-borderColor',
               'animate-in fade-in-0 zoom-in-95',
-              'py-1',
+              'py-1.5 px-1 min-w-[200px]',
             )}
             sideOffset={5}
             align="end"
           >
             <DropdownMenu.Item
               className={classNames(
-                'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
+                'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative mb-0.5',
                 {
                   'opacity-60 cursor-not-allowed': isDeploying || !activePreview || !netlifyConn.user,
                 },
@@ -159,21 +161,23 @@ export const DeployButton = ({
               onClick={handleNetlifyDeployClick}
             >
               <img
-                className="w-5 h-5"
+                className="w-5 h-5 flex-shrink-0"
                 height="24"
                 width="24"
                 crossOrigin="anonymous"
                 src="https://cdn.simpleicons.org/netlify"
               />
-              <span className="mx-auto">
-                {!netlifyConn.user ? 'No Netlify Account Connected' : 'Deploy to Netlify'}
+              <span className="flex-1 truncate">
+                {!netlifyConn.user
+                  ? t('header.noAccount', { platform: 'Netlify' })
+                  : t('header.deployTo', { platform: 'Netlify' })}
               </span>
               {netlifyConn.user && <NetlifyDeploymentLink />}
             </DropdownMenu.Item>
 
             <DropdownMenu.Item
               className={classNames(
-                'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
+                'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative mb-0.5',
                 {
                   'opacity-60 cursor-not-allowed': isDeploying || !activePreview || !vercelConn.user,
                 },
@@ -182,20 +186,24 @@ export const DeployButton = ({
               onClick={handleVercelDeployClick}
             >
               <img
-                className="w-5 h-5 bg-black p-1 rounded"
+                className="w-5 h-5 bg-black p-1 rounded flex-shrink-0"
                 height="24"
                 width="24"
                 crossOrigin="anonymous"
                 src="https://cdn.simpleicons.org/vercel/white"
                 alt="vercel"
               />
-              <span className="mx-auto">{!vercelConn.user ? 'No Vercel Account Connected' : 'Deploy to Vercel'}</span>
+              <span className="flex-1 truncate">
+                {!vercelConn.user
+                  ? t('header.noAccount', { platform: 'Vercel' })
+                  : t('header.deployTo', { platform: 'Vercel' })}
+              </span>
               {vercelConn.user && <VercelDeploymentLink />}
             </DropdownMenu.Item>
 
             <DropdownMenu.Item
               className={classNames(
-                'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
+                'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative mb-0.5',
                 {
                   'opacity-60 cursor-not-allowed': isDeploying || !activePreview,
                 },
@@ -204,19 +212,19 @@ export const DeployButton = ({
               onClick={handleGitHubDeployClick}
             >
               <img
-                className="w-5 h-5"
+                className="w-5 h-5 flex-shrink-0"
                 height="24"
                 width="24"
                 crossOrigin="anonymous"
                 src="https://cdn.simpleicons.org/github"
                 alt="github"
               />
-              <span className="mx-auto">Deploy to GitHub</span>
+              <span className="flex-1 truncate text-left">{t('header.deployTo', { platform: 'GitHub' })}</span>
             </DropdownMenu.Item>
 
             <DropdownMenu.Item
               className={classNames(
-                'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
+                'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative mb-0.5',
                 {
                   'opacity-60 cursor-not-allowed': isDeploying || !activePreview || !gitlabIsConnected,
                 },
@@ -225,29 +233,35 @@ export const DeployButton = ({
               onClick={handleGitLabDeployClick}
             >
               <img
-                className="w-5 h-5"
+                className="w-5 h-5 flex-shrink-0"
                 height="24"
                 width="24"
                 crossOrigin="anonymous"
                 src="https://cdn.simpleicons.org/gitlab"
                 alt="gitlab"
               />
-              <span className="mx-auto">{!gitlabIsConnected ? 'No GitLab Account Connected' : 'Deploy to GitLab'}</span>
+              <span className="flex-1 truncate">
+                {!gitlabIsConnected
+                  ? t('header.noAccount', { platform: 'GitLab' })
+                  : t('header.deployTo', { platform: 'GitLab' })}
+              </span>
             </DropdownMenu.Item>
+
+            <div className="h-px bg-bolt-elements-borderColor my-1 mx-1" />
 
             <DropdownMenu.Item
               disabled
-              className="flex items-center w-full rounded-md px-4 py-2 text-sm text-bolt-elements-textTertiary gap-2 opacity-60 cursor-not-allowed"
+              className="flex items-center w-full rounded-md px-4 py-2 text-xs text-bolt-elements-textTertiary gap-2 opacity-60 cursor-not-allowed"
             >
               <img
-                className="w-5 h-5"
-                height="24"
-                width="24"
+                className="w-4 h-4 flex-shrink-0"
+                height="16"
+                width="16"
                 crossOrigin="anonymous"
                 src="https://cdn.simpleicons.org/cloudflare"
                 alt="cloudflare"
               />
-              <span className="mx-auto">Deploy to Cloudflare (Coming Soon)</span>
+              <span className="flex-1 truncate">Cloudflare ({t('header.comingSoon')})</span>
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Root>

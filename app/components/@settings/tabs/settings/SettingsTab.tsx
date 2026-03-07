@@ -78,13 +78,13 @@ export default function SettingsTab() {
       >
         <div className="flex items-center gap-2 mb-4">
           <div className="i-ph:palette-fill w-4 h-4 text-purple-500" />
-          <span className="text-sm font-medium text-bolt-elements-textPrimary">Preferences</span>
+          <span className="text-sm font-medium text-bolt-elements-textPrimary">{t('preferences')}</span>
         </div>
 
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="i-ph:translate-fill w-4 h-4 text-bolt-elements-textSecondary" />
-            <label className="block text-sm text-bolt-elements-textSecondary">Language</label>
+            <label className="block text-sm text-bolt-elements-textSecondary">{t('language')}</label>
           </div>
           <select
             value={settings.language}
@@ -110,11 +110,11 @@ export default function SettingsTab() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="i-ph:bell-fill w-4 h-4 text-bolt-elements-textSecondary" />
-            <label className="block text-sm text-bolt-elements-textSecondary">Notifications</label>
+            <label className="block text-sm text-bolt-elements-textSecondary">{t('notifications')}</label>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-bolt-elements-textSecondary">
-              {settings.notifications ? 'Notifications are enabled' : 'Notifications are disabled'}
+              {settings.notifications ? t('notificationsEnabled') : t('notificationsDisabled')}
             </span>
             <Switch
               checked={settings.notifications}
@@ -138,7 +138,7 @@ export default function SettingsTab() {
                   }),
                 );
 
-                toast.success(`Notifications ${checked ? 'enabled' : 'disabled'}`);
+                toast.success(checked ? t('notificationsEnabled') : t('notificationsDisabled'));
               }}
             />
           </div>
@@ -154,13 +154,13 @@ export default function SettingsTab() {
       >
         <div className="flex items-center gap-2 mb-4">
           <div className="i-ph:clock-fill w-4 h-4 text-purple-500" />
-          <span className="text-sm font-medium text-bolt-elements-textPrimary">Time Settings</span>
+          <span className="text-sm font-medium text-bolt-elements-textPrimary">{t('timeSettings')}</span>
         </div>
 
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="i-ph:globe-fill w-4 h-4 text-bolt-elements-textSecondary" />
-            <label className="block text-sm text-bolt-elements-textSecondary">Timezone</label>
+            <label className="block text-sm text-bolt-elements-textSecondary">{t('timezone')}</label>
           </div>
           <select
             value={settings.timezone}
@@ -188,14 +188,14 @@ export default function SettingsTab() {
       >
         <div className="flex items-center gap-2 mb-4">
           <div className="i-ph:keyboard-fill w-4 h-4 text-purple-500" />
-          <span className="text-sm font-medium text-bolt-elements-textPrimary">Keyboard Shortcuts</span>
+          <span className="text-sm font-medium text-bolt-elements-textPrimary">{t('keyboardShortcuts')}</span>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between p-2 rounded-lg bg-[#FAFAFA] dark:bg-[#1A1A1A]">
             <div className="flex flex-col">
-              <span className="text-sm text-bolt-elements-textPrimary">Toggle Theme</span>
-              <span className="text-xs text-bolt-elements-textSecondary">Switch between light and dark mode</span>
+              <span className="text-sm text-bolt-elements-textPrimary">{t('toggleTheme')}</span>
+              <span className="text-xs text-bolt-elements-textSecondary">{t('switchBetweenLightAndDark')}</span>
             </div>
             <div className="flex items-center gap-1">
               <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">

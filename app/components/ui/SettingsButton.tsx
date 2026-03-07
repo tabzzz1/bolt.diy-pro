@@ -2,18 +2,21 @@ import { memo } from 'react';
 import { IconButton } from '~/components/ui/IconButton';
 interface SettingsButtonProps {
   onClick: () => void;
+  title?: string;
+  label?: string;
 }
 
-export const SettingsButton = memo(({ onClick }: SettingsButtonProps) => {
+export const SettingsButton = memo(({ onClick, title = 'Settings', label }: SettingsButtonProps) => {
   return (
-    <IconButton
+    <button
       onClick={onClick}
-      icon="i-ph:gear"
-      size="xl"
-      title="Settings"
+      title={title}
       data-testid="settings-button"
-      className="text-[#666] hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive/10 transition-colors"
-    />
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-bolt-elements-borderColor bg-white dark:bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-gray-100 dark:hover:bg-bolt-elements-background-depth-2 transition-all ml-1"
+    >
+      <div className="i-ph:gear text-xl transition-transform group-hover:rotate-45" />
+      {label && <span className="text-xs font-medium">{label}</span>}
+    </button>
   );
 });
 
