@@ -114,6 +114,11 @@ export const AssistantMessage = memo(
      * Each segment is either:
      *   - { type: 'text', text: string }           – consecutive text parts merged
      *   - { type: 'tool-invocations', parts: [] }  – consecutive tool invocations grouped
+     *
+     * IMPORTANT: The `content` prop is the *parsed* version (with <boltArtifact>
+     * replaced by <div class="__boltArtifact__">), while `parts[].text` contains
+     * the *raw* content. We must use `content` for text rendering so that
+     * artifact cards display correctly.
      */
     const groupedSegments = useMemo(() => {
       if (!parts || parts.length === 0) {
@@ -121,18 +126,31 @@ export const AssistantMessage = memo(
         return [{ type: 'text' as const, text: content }];
       }
 
+      const hasToolInvocations = parts.some((p) => p.type === 'tool-invocation');
+
+      if (!hasToolInvocations) {
+        // No tool invocations – use the pre-parsed `content` so that
+        // <boltArtifact> tags (now transformed to __boltArtifact__ divs)
+        // render as artifact cards instead of raw code.
+        return [{ type: 'text' as const, text: content }];
+      }
+
+      // There are tool invocations – interleave text and tool-invocation segments.
+      // We use the parsed `content` for the text portions while preserving
+      // tool-invocation parts at their natural positions.
       const segments: ({ type: 'text'; text: string } | { type: 'tool-invocations'; parts: ToolInvocationUIPart[] })[] =
         [];
 
+      // Collect tool invocation groups in order from parts
+      // and place the parsed content as a single leading text block.
+      let hasLeadingText = false;
+
       for (const part of parts) {
         if (part.type === 'text') {
-          // Merge consecutive text parts
-          const last = segments[segments.length - 1];
-
-          if (last && last.type === 'text') {
-            last.text += part.text;
-          } else {
-            segments.push({ type: 'text', text: part.text });
+          // Only push the parsed content once as the leading text block
+          if (!hasLeadingText) {
+            hasLeadingText = true;
+            segments.push({ type: 'text', text: content });
           }
         } else if (part.type === 'tool-invocation') {
           // Group consecutive tool invocation parts
@@ -146,6 +164,11 @@ export const AssistantMessage = memo(
         }
 
         // Other part types (reasoning, source, file, step-start) are ignored for now
+      }
+
+      // If no text part was encountered, still include the parsed content
+      if (!hasLeadingText && content) {
+        segments.unshift({ type: 'text', text: content });
       }
 
       return segments;
