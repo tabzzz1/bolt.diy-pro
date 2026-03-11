@@ -107,6 +107,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         pauseOnFocusLoss
         transition={toastAnimation}
         autoClose={3000}
+        style={{ zIndex: 99999 }}
       />
       <ScrollRestoration />
       <Scripts />

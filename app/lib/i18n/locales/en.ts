@@ -129,6 +129,22 @@ const en = {
     reportBug: 'Report Bug',
     downloadDebugLog: 'Download Debug Log',
     helpDocumentation: 'Help & Documentation',
+    profileTab: {
+      profilePicture: 'Profile Picture',
+      profilePictureDescription: 'Upload a profile picture or avatar',
+      username: 'Username',
+      usernamePlaceholder: 'Enter your username',
+      bio: 'Bio',
+      bioPlaceholder: 'Tell us about yourself',
+      saveChanges: 'Save Changes',
+      saving: 'Saving...',
+      saveSuccess: 'Profile saved successfully',
+      saveFailed: 'Failed to save profile',
+      syncedToCloud: 'Logged in as {{email}}, profile will sync to cloud',
+      avatarTooLarge: 'Avatar file cannot exceed 2MB',
+      avatarUploaded: 'Avatar uploaded successfully',
+      avatarUploadFailed: 'Failed to update profile picture',
+    },
 
     // Cloud Providers Tab
     cloudProvidersSubtitle: 'Connect to cloud-based AI models and services',
@@ -525,9 +541,11 @@ const en = {
       role: 'Role: {{role}}',
       // Settings tab translations
       supabaseIntegration: 'Supabase Integration',
-      integrationDescription: 'Connect and manage your Supabase projects with database access, authentication, and storage controls',
+      integrationDescription:
+        'Connect and manage your Supabase projects with database access, authentication, and storage controls',
       tip: 'Tip:',
-      environmentVariableTip: 'You can also set the <code>{{variable}}</code> environment variable to connect automatically.',
+      environmentVariableTip:
+        'You can also set the <code>{{variable}}</code> environment variable to connect automatically.',
       getTokenLink: 'Get your token',
       testConnection: 'Test Connection',
       testing: 'Testing...',

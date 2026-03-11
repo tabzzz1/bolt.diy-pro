@@ -129,6 +129,22 @@ const zh = {
     reportBug: '报告 Bug',
     downloadDebugLog: '下载调试日志',
     helpDocumentation: '帮助与文档',
+    profileTab: {
+      profilePicture: '头像',
+      profilePictureDescription: '上传头像或头像图片',
+      username: '用户名',
+      usernamePlaceholder: '请输入用户名',
+      bio: '个人简介',
+      bioPlaceholder: '介绍一下自己',
+      saveChanges: '保存更改',
+      saving: '保存中...',
+      saveSuccess: '个人资料已保存',
+      saveFailed: '保存个人资料失败',
+      syncedToCloud: '已登录为 {{email}}，资料将同步到云端',
+      avatarTooLarge: '头像文件不能超过 2MB',
+      avatarUploaded: '头像已上传',
+      avatarUploadFailed: '更新头像失败',
+    },
 
     // Cloud Providers Tab
     cloudProvidersSubtitle: '连接到云端 AI 模型和服务',
