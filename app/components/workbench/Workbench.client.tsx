@@ -30,6 +30,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 interface WorkspaceProps {
   chatStarted?: boolean;
   isStreaming?: boolean;
+  showWorkbench?: boolean;
   isChatCollapsed?: boolean;
   onToggleChatCollapsed?: () => void;
   metadata?: {
@@ -356,6 +357,14 @@ export const Workbench = memo(
       chatStarted && (
         <div className="h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden">
           <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1.5">
+            {/* 关闭工作台按钮 */}
+            <button
+              onClick={() => workbenchStore.showWorkbench.set(false)}
+              title="关闭工作区"
+              className="flex items-center justify-center w-7 h-7 rounded-md text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive transition-colors shrink-0"
+            >
+              <div className="text-lg i-ph:x" />
+            </button>
             {/* 最大化 / 还原按钮 */}
             {onToggleChatCollapsed && (
               <button

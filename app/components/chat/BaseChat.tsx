@@ -29,6 +29,7 @@ import type { ProgressAnnotation } from '~/types/context';
 import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
+import { workbenchStore } from '~/lib/stores/workbench';
 import { StickToBottom } from '~/lib/hooks';
 import { ChatBox } from './ChatBox';
 import type { DesignScheme } from '~/types/design-scheme';
@@ -38,7 +39,7 @@ import { STORAGE_KEY_CHAT_PANEL_WIDTH, STORAGE_KEY_CHAT_PANEL_COLLAPSED } from '
 
 // ── 拖拽分割面板常量 ─────────────────────────────────────────────────────────
 const MIN_CHAT_WIDTH = 460; // 左侧面板最小宽度 (px)，含左右 padding 各 24px
-const MIN_WORKBENCH_WIDTH = 400; // 右侧面板最小宽度 (px)
+const MIN_WORKBENCH_WIDTH = 860; // 右侧面板最小宽度 (px)
 const DIVIDER_WIDTH = 6; // 分割线自身宽度 (px)
 const COLLAPSE_OVERSCROLL = 120; // 向左超过最小值多少 px 后触发收起
 // 展开/收起触发点：mouseX = MIN_CHAT_WIDTH + DIVIDER_WIDTH/2
@@ -164,6 +165,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
     const expoUrl = useStore(expoUrlAtom);
+    const showWorkbench = useStore(workbenchStore.showWorkbench);
     const [qrModalOpen, setQrModalOpen] = useState(false);
 
     // ── 拖拽分割面板 refs / state ─────────────────────────────────────────────
@@ -181,6 +183,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [isChatCollapsed, setIsChatCollapsed] = useState(_savedCollapsed);
     const [isDividerActive, setIsDividerActive] = useState(false);
     const [isDividerResisting, setIsDividerResisting] = useState(false); // 分割线处于抵抗状态（即将收起）
+    const [isDividerResistingRight, setIsDividerResistingRight] = useState(false); // 分割线处于右侧抵抗状态（工作台到最小宽度）
     const collapsedRef = useRef(_savedCollapsed);
     const lastChatWidthRef = useRef(_savedWidth);
     const expandingFromCollapsedRef = useRef(false); // 是否正在从收起状态展开
@@ -197,6 +200,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         document.documentElement.style.setProperty('--chat-min-width', `${_savedWidth}px`);
       }
     }, []);
+
+    // 当工作台关闭时，自动恢复聊天面板（避免两侧都隐藏的异常状态）
+    useEffect(() => {
+      if (!showWorkbench && isChatCollapsed) {
+        setCollapsed(false);
+        const restoreWidth = lastChatWidthRef.current || DEFAULT_CHAT_WIDTH;
+        document.documentElement.style.setProperty('--chat-min-width', `${restoreWidth}px`);
+      }
+    }, [showWorkbench]);
 
     const setCollapsed = useCallback((value: boolean) => {
       collapsedRef.current = value;
@@ -269,6 +281,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           minWidthHitXRef.current = null;
           setIsDividerActive(false);
           setIsDividerResisting(false);
+          setIsDividerResistingRight(false);
         };
 
         const onMouseMove = (ev: MouseEvent) => {
@@ -312,7 +325,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             }
 
             // 鼠标在触发点右侧：chatWidth = mouseX - DIVIDER_WIDTH/2，精确对齐分割线
-            const chatWidth = Math.min(maxChatWidth, Math.max(0, ev.clientX - DIVIDER_WIDTH / 2));
+            const rawChatWidth = Math.max(0, ev.clientX - DIVIDER_WIDTH / 2);
+            const chatWidth = Math.min(maxChatWidth, rawChatWidth);
+
+            // 检测右侧抵抗（工作台到最小宽度）
+            setIsDividerResistingRight(rawChatWidth >= maxChatWidth);
 
             if (collapsedRef.current) {
               collapsedRef.current = false;
@@ -358,6 +375,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setIsDividerResisting(false);
 
             const newChatWidth = Math.min(maxChatWidth, rawWidth);
+
+            // 检测右侧抵抗（工作台到最小宽度）
+            setIsDividerResistingRight(rawWidth >= maxChatWidth);
+
             document.documentElement.style.setProperty('--chat-min-width', `${newChatWidth}px`);
           }
         };
@@ -610,11 +631,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <div
             ref={chatPanelRef}
             className={classNames(styles.Chat, 'flex flex-col h-full transition-[width] duration-300 ease-in-out', {
-              'flex-grow': !chatStarted,
-              'flex-shrink-0': chatStarted,
+              'flex-grow': !chatStarted || (chatStarted && !showWorkbench),
+              'flex-shrink-0': chatStarted && showWorkbench,
               'overflow-hidden': chatStarted,
             })}
-            style={chatStarted ? { width: isChatCollapsed ? '0px' : 'var(--chat-min-width)' } : undefined}
+            style={
+              chatStarted && showWorkbench ? { width: isChatCollapsed ? '0px' : 'var(--chat-min-width)' } : undefined
+            }
           >
             {!chatStarted && (
               <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
@@ -793,17 +816,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </div>
           {/* Workbench panel — divider lives inside here so it always hugs the content left edge */}
           <div
-            className={classNames('relative h-full overflow-hidden transition-[padding] duration-300 ease-in-out', {
+            className={classNames('relative h-full overflow-hidden transition-all duration-300 ease-in-out', {
               // 左侧 paddding: 收起时留 12px(pl-3) 间距 + 6px 分割线位 = 18px；
               // 未收起时只留 6px 给分割线，视觉上与原来一致
-              'flex-1 py-3 pr-3': chatStarted,
-              'pl-[18px]': chatStarted && isChatCollapsed, // 12px gap + 6px divider
-              'pl-[6px]': chatStarted && !isChatCollapsed, //  0px gap + 6px divider
+              'flex-1 py-3 pr-3': chatStarted && showWorkbench,
+              'pl-[18px]': chatStarted && showWorkbench && isChatCollapsed, // 12px gap + 6px divider
+              'pl-[6px]': chatStarted && showWorkbench && !isChatCollapsed, //  0px gap + 6px divider
+              'w-0 min-w-0 opacity-0 pointer-events-none p-0': chatStarted && !showWorkbench,
             })}
-            style={chatStarted ? { minWidth: `${MIN_WORKBENCH_WIDTH}px` } : undefined}
+            style={
+              chatStarted && showWorkbench
+                ? { minWidth: `${MIN_WORKBENCH_WIDTH}px` }
+                : chatStarted
+                  ? { width: '0px', minWidth: '0px' }
+                  : undefined
+            }
           >
             {/* Resize divider — absolutely positioned at the left content boundary */}
-            {chatStarted && (
+            {chatStarted && showWorkbench && (
               <div
                 className="absolute top-0 bottom-0 w-[6px] flex items-center justify-center group cursor-col-resize z-20 transition-[left] duration-300 ease-in-out"
                 style={{ left: isChatCollapsed ? '12px' : '0px' }}
@@ -814,7 +844,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   className={classNames(
                     'divider-pill w-[4px] rounded-full pointer-events-none',
                     'transition-[height,opacity,background-color]',
-                    isDividerActive && isDividerResisting
+                    isDividerActive && (isDividerResisting || isDividerResistingRight)
                       ? 'h-20 opacity-100 bg-rose-400 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]'
                       : isDividerActive
                         ? 'h-14 opacity-100 bg-accent-500 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]'
@@ -828,6 +858,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <Workbench
                   chatStarted={chatStarted}
                   isStreaming={isStreaming}
+                  showWorkbench={showWorkbench}
                   isChatCollapsed={isChatCollapsed}
                   onToggleChatCollapsed={handleToggleChatCollapsed}
                   setSelectedElement={setSelectedElement}
@@ -842,5 +873,3 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     return <Tooltip.Provider delayDuration={200}>{baseChat}</Tooltip.Provider>;
   },
 );
-
-
