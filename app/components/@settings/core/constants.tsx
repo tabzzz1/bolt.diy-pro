@@ -28,12 +28,12 @@ const NetlifyIcon = () => (
   </svg>
 );
 
-// Supabase icon component
-const SupabaseIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-4 h-4">
+// Supabase icon component (monochrome in settings panel)
+const SupabaseIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className || 'w-4 h-4'}>
     <path
       fill="currentColor"
-      d="M21.362 9.354H12V.396a.396.396 0 0 0-.716-.233L2.203 12.424l-.401.562a1.04 1.04 0 0 0 .836 1.659H12V21.6a.396.396 0 0 0 .716.233l9.081-12.261.401-.562a1.04 1.04 0 0 0-.836-1.656z"
+      d="M11.9 1.036c-.015-.986-1.26-1.41-1.874-.637L.764 12.05C-.33 13.427.65 15.455 2.409 15.455h9.579l.113 7.51c.014.985 1.259 1.408 1.873.636l9.262-11.653c1.093-1.375.113-3.403-1.645-3.403h-9.642z"
     />
   </svg>
 );
@@ -50,7 +50,7 @@ export const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string
   gitlab: () => <GitLabIcon />,
   netlify: () => <NetlifyIcon />,
   vercel: () => <VercelIcon />,
-  supabase: () => <SupabaseIcon />,
+  supabase: ({ className }) => <SupabaseIcon className={className} />,
   'event-logs': List,
   mcp: Wrench,
 };

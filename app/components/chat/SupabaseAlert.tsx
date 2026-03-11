@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
-  const { t } = useTranslation('chat');
+  const { t } = useTranslation();
   const { content } = alert;
   const connection = useStore(supabaseConnection);
   const [isExecuting, setIsExecuting] = useState(false);
@@ -23,9 +23,9 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
   const isConnected = !!(connection.token && connection.selectedProjectId);
 
   // Set title and description based on connection state
-  const title = isConnected ? t('supabase.queryTitle') : t('supabase.connectionRequiredTitle');
-  const description = isConnected ? t('supabase.queryDescription') : t('supabase.connectionRequiredDescription');
-  const message = isConnected ? t('supabase.reviewMessage') : t('supabase.connectMessage');
+  const title = isConnected ? t('supabaseTab.queryTitle') : t('supabaseTab.connectionRequiredTitle');
+  const description = isConnected ? t('supabaseTab.queryDescription') : t('supabaseTab.connectionRequiredDescription');
+  const message = isConnected ? t('supabaseTab.reviewMessage') : t('supabaseTab.connectMessage');
 
   const handleConnectClick = () => {
     // Dispatch an event to open the Supabase connection dialog
@@ -113,7 +113,7 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
         <div className="px-4">
           {!isConnected ? (
             <div className="p-3 rounded-md bg-bolt-elements-background-depth-3">
-              <span className="text-sm text-bolt-elements-textPrimary">{t('supabase.mustConnect')}</span>
+              <span className="text-sm text-bolt-elements-textPrimary">{t('supabaseTab.mustConnect')}</span>
             </div>
           ) : (
             <>
@@ -123,7 +123,7 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
               >
                 <div className="i-ph:database text-bolt-elements-textPrimary mr-2"></div>
                 <span className="text-sm text-bolt-elements-textPrimary flex-grow">
-                  {description || t('supabase.defaultDescription')}
+                  {description || t('supabaseTab.defaultDescription')}
                 </span>
                 <div
                   className={`i-ph:caret-up text-bolt-elements-textPrimary transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
@@ -156,7 +156,7 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
                   'flex items-center gap-1.5',
                 )}
               >
-                {t('supabase.connectButton')}
+                {t('supabaseTab.connectButton')}
               </button>
             ) : (
               <button
@@ -172,7 +172,7 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
                   isExecuting ? 'opacity-70 cursor-not-allowed' : '',
                 )}
               >
-                {isExecuting ? t('supabase.applying') : t('supabase.applyChanges')}
+                {isExecuting ? t('supabaseTab.applying') : t('supabaseTab.applyChanges')}
               </button>
             )}
             <button
@@ -187,7 +187,7 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
                 isExecuting ? 'opacity-70 cursor-not-allowed' : '',
               )}
             >
-              {t('supabase.dismiss')}
+              {t('supabaseTab.dismiss')}
             </button>
           </div>
         </div>
