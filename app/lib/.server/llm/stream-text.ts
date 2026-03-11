@@ -273,6 +273,34 @@ export async function streamText(props: {
     ),
   );
 
+  // Append MCP tools guidance to system prompt when external tools are available.
+  // Without this, the LLM may call MCP tools (e.g. DeepWiki) even for trivial tasks
+  // like writing a Hello World HTML page — because `toolChoice: 'auto'` gives it
+  // freedom to choose, and it has no instruction telling it when NOT to use them.
+  const toolsInOptions = (filteredOptions as any).tools;
+  const hasMCPTools = toolsInOptions && Object.keys(toolsInOptions).length > 0;
+
+  const baseSystemPrompt = chatMode === 'build' ? systemPrompt : discussPrompt();
+  const effectiveSystemPrompt = hasMCPTools
+    ? `${baseSystemPrompt}
+
+<mcp_tools_guidance>
+  CRITICAL: You have access to external MCP tools. Follow these rules strictly:
+
+  ONLY call an MCP tool when ALL of the following are true:
+  - The user's request explicitly requires real-time data, external API access, or information that is genuinely not part of your built-in knowledge
+  - The task cannot be completed without fetching that external information
+
+  NEVER call MCP tools for:
+  - Writing or generating any code (HTML, CSS, JavaScript, TypeScript, etc.)
+  - General coding questions or explanations
+  - Answering conceptual or factual questions you already know the answer to
+  - Any task you can complete directly with your existing knowledge
+
+  Default behavior: answer directly without calling any MCP tool unless the criteria above are clearly met.
+</mcp_tools_guidance>`
+    : baseSystemPrompt;
+
   const streamParams = {
     model: provider.getModelInstance({
       model: modelDetails.name,
@@ -280,7 +308,7 @@ export async function streamText(props: {
       apiKeys,
       providerSettings,
     }),
-    system: chatMode === 'build' ? systemPrompt : discussPrompt(),
+    system: effectiveSystemPrompt,
     ...tokenParams,
     messages: convertToCoreMessages(processedMessages as any),
     ...filteredOptions,
