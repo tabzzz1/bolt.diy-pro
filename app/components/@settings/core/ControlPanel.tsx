@@ -305,11 +305,11 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
             aria-describedby={undefined}
             onEscapeKeyDown={handleClose}
             onPointerDownOutside={handleClose}
-            className="relative z-[10000]"
+            className="relative z-[10000] w-full max-w-[1200px] px-4 sm:px-6"
           >
             <div
               className={classNames(
-                'w-[1200px] h-[90vh]',
+                'w-full h-[90vh]',
                 'bg-bolt-elements-background-depth-1',
                 'rounded-2xl shadow-2xl',
                 'border border-bolt-elements-borderColor',
