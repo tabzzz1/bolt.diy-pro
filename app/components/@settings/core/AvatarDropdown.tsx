@@ -7,6 +7,7 @@ import { classNames } from '~/utils/classNames';
 import { profileStore } from '~/lib/stores/profile';
 import { authStore, signOut } from '~/lib/stores/auth';
 import { AuthDialog } from './AuthDialog';
+import { Image } from '~/components/ui/Image';
 import type { TabType, Profile } from './types';
 
 interface AvatarDropdownProps {
@@ -18,9 +19,6 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
   const auth = useStore(authStore);
   const { t } = useTranslation('settings');
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [avatarError, setAvatarError] = useState(false);
-
-  const showAvatar = !!profile?.avatar && !avatarError;
 
   const handleSignOut = async () => {
     await signOut();
@@ -35,22 +33,18 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            {showAvatar ? (
-              <img
-                src={profile.avatar}
-                alt={profile?.username || t('profile')}
-                className="w-full h-full rounded-full object-cover"
-                loading="eager"
-                decoding="sync"
-                crossOrigin="anonymous"
-                referrerPolicy="no-referrer"
-                onError={() => setAvatarError(true)}
-              />
-            ) : (
-              <div className="w-full h-full rounded-full flex items-center justify-center bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500">
-                <div className="i-ph:user w-6 h-6" />
-              </div>
-            )}
+            <Image
+              src={profile?.avatar}
+              alt={profile?.username || t('profile')}
+              className="w-full h-full rounded-full object-cover"
+              loading="eager"
+              decoding="sync"
+              fallback={
+                <div className="w-full h-full rounded-full flex items-center justify-center bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500">
+                  <div className="i-ph:user w-6 h-6" />
+                </div>
+              }
+            />
           </motion.button>
         </DropdownMenu.Trigger>
 
@@ -74,22 +68,18 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               )}
             >
               <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm">
-                {showAvatar ? (
-                  <img
-                    src={profile.avatar}
-                    alt={profile?.username || t('profile')}
-                    className={classNames('w-full h-full', 'object-cover', 'transform-gpu', 'image-rendering-crisp')}
-                    loading="eager"
-                    decoding="sync"
-                    crossOrigin="anonymous"
-                    referrerPolicy="no-referrer"
-                    onError={() => setAvatarError(true)}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 font-medium text-lg">
-                    <div className="i-ph:user w-6 h-6" />
-                  </div>
-                )}
+                <Image
+                  src={profile?.avatar}
+                  alt={profile?.username || t('profile')}
+                  className={classNames('w-full h-full', 'object-cover', 'transform-gpu', 'image-rendering-crisp')}
+                  loading="eager"
+                  decoding="sync"
+                  fallback={
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 font-medium text-lg">
+                      <div className="i-ph:user w-6 h-6" />
+                    </div>
+                  }
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm text-gray-900 dark:text-white truncate">

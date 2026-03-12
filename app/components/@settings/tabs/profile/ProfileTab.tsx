@@ -5,6 +5,7 @@ import { classNames } from '~/utils/classNames';
 import { profileStore, updateProfile } from '~/lib/stores/profile';
 import { authStore, updateUserProfile, uploadAvatar } from '~/lib/stores/auth';
 import { toast } from 'react-toastify';
+import { Image } from '~/components/ui/Image';
 
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024; // 2MB
 
@@ -135,21 +136,18 @@ export default function ProfileTab() {
                 'hover:shadow-lg hover:shadow-purple-500/10',
               )}
             >
-              {profile.avatar ? (
-                <img
-                  src={profile.avatar}
-                  alt="Profile"
-                  crossOrigin="anonymous"
-                  referrerPolicy="no-referrer"
-                  className={classNames(
-                    'w-full h-full object-cover',
-                    'transition-all duration-300 ease-out',
-                    'group-hover:scale-105 group-hover:brightness-90',
-                  )}
-                />
-              ) : (
-                <div className="i-ph:robot-fill w-16 h-16 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-purple-500/70 transform -translate-y-1" />
-              )}
+              <Image
+                src={profile.avatar}
+                alt="Profile"
+                className={classNames(
+                  'w-full h-full object-cover',
+                  'transition-all duration-300 ease-out',
+                  'group-hover:scale-105 group-hover:brightness-90',
+                )}
+                fallback={
+                  <div className="i-ph:robot-fill w-16 h-16 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-purple-500/70 transform -translate-y-1" />
+                }
+              />
 
               <label
                 className={classNames(

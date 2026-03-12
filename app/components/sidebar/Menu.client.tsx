@@ -18,6 +18,7 @@ import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
 import { isSidebarOpen } from '~/lib/stores/sidebar';
 import { languageStore } from '~/lib/stores/i18n';
+import { Image } from '~/components/ui/Image';
 
 const menuVariants = {
   closed: {
@@ -343,17 +344,14 @@ export const Menu = () => {
         <div className="px-4 py-3.5 border-b border-gray-100 dark:border-gray-800/50">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-9 h-9 overflow-hidden bg-purple-50 dark:bg-purple-500/10 text-purple-500 dark:text-purple-400 rounded-xl shrink-0">
-              {profile?.avatar ? (
-                <img
-                  src={profile.avatar}
-                  alt={profile?.username || t('menu.user')}
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                  decoding="sync"
-                />
-              ) : (
-                <div className="i-ph:user-fill text-base" />
-              )}
+              <Image
+                src={profile?.avatar}
+                alt={profile?.username || t('menu.user')}
+                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="sync"
+                fallback={<div className="i-ph:user-fill text-base" />}
+              />
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-semibold text-gray-900 dark:text-white truncate leading-tight">

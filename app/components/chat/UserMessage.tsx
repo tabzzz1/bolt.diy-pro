@@ -7,6 +7,7 @@ import { Markdown } from './Markdown';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
 import { UserMessageActions } from './MessageActions';
+import { Image } from '~/components/ui/Image';
 import type {
   TextUIPart,
   ReasoningUIPart,
@@ -32,12 +33,17 @@ interface UserMessageProps {
 function UserAvatar({ profile }: { profile: any }) {
   if (profile?.avatar) {
     return (
-      <img
+      <Image
         src={profile.avatar}
         alt={profile?.username || 'User'}
         className="w-7 h-7 object-cover rounded-full flex-shrink-0 ring-1 ring-bolt-elements-borderColor"
         loading="eager"
         decoding="sync"
+        fallback={
+          <div className="w-7 h-7 rounded-full bg-accent-500/20 flex items-center justify-center flex-shrink-0">
+            <div className="i-ph:user-fill text-accent-500 text-sm" />
+          </div>
+        }
       />
     );
   }
