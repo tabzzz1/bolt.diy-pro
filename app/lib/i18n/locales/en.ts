@@ -28,6 +28,7 @@ const en = {
       confirmBulkDeleteQuestion: 'Are you sure you want to delete these chats?',
       cancel: 'Cancel',
       delete: 'Delete',
+      historyHelp: 'Only chats with code or file changes are saved.',
     },
     historyItem: {
       export: 'Export',

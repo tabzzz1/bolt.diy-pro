@@ -28,6 +28,7 @@ const zh = {
       confirmBulkDeleteQuestion: '确定要删除这些对话吗？',
       cancel: '取消',
       delete: '删除',
+      historyHelp: '仅包含代码或文件生成的对话会被记录。',
     },
     historyItem: {
       export: '导出',

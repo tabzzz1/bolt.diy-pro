@@ -10,6 +10,7 @@ import { SettingsButton, HelpButton } from '~/components/ui/SettingsButton';
 import { Button } from '~/components/ui/Button';
 import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory } from '~/lib/persistence';
 import { cubicEasingFn } from '~/utils/easings';
+import { Tooltip } from '~/components/ui/Tooltip';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
 import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
@@ -403,9 +404,14 @@ export const Menu = () => {
 
           {/* 列表标题行 */}
           <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
-            <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest">
-              {t('menu.myChats')}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-600 uppercase tracking-widest leading-none">
+                {t('menu.myChats')}
+              </span>
+              <Tooltip content={t('menu.historyHelp')} side="right">
+                <div className="i-ph:question text-xs text-gray-400 dark:text-gray-600 cursor-help opacity-50 hover:opacity-100 transition-opacity" />
+              </Tooltip>
+            </div>
             {selectionMode && (
               <div className="flex items-center gap-1.5">
                 <Button variant="ghost" size="sm" onClick={selectAll}>
