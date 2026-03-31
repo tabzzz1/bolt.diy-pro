@@ -6,6 +6,11 @@ import { useTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 import { profileStore } from '~/lib/stores/profile';
 import { authStore, signOut } from '~/lib/stores/auth';
+import { githubConnection } from '~/lib/stores/github';
+import { gitlabConnection } from '~/lib/stores/gitlabConnection';
+import { vercelConnection } from '~/lib/stores/vercel';
+import { netlifyConnection } from '~/lib/stores/netlify';
+import { supabaseConnection } from '~/lib/stores/supabase';
 import { AuthDialog } from './AuthDialog';
 import { Image } from '~/components/ui/Image';
 import type { TabType, Profile } from './types';
@@ -17,8 +22,14 @@ interface AvatarDropdownProps {
 export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
   const profile = useStore(profileStore) as Profile;
   const auth = useStore(authStore);
+  const github = useStore(githubConnection);
+  const gitlab = useStore(gitlabConnection);
+  const vercel = useStore(vercelConnection);
+  const netlify = useStore(netlifyConnection);
+  const supabase = useStore(supabaseConnection);
   const { t } = useTranslation('settings');
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const hasPlatformConnection = Boolean(github?.user || gitlab?.user || vercel?.user || netlify?.user || supabase?.user);
 
   const handleSignOut = async () => {
     await signOut();
@@ -83,7 +94,12 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                  {profile?.username || (auth.isAuthenticated ? auth.user?.email : t('guestUser'))}
+                  {profile?.username ||
+                    (auth.isAuthenticated
+                      ? auth.user?.email
+                      : hasPlatformConnection
+                        ? t('connectedUser', '已连接平台账号')
+                        : t('guestUser'))}
                 </div>
                 {profile?.bio && <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{profile.bio}</div>}
                 {!profile?.bio && auth.isAuthenticated && auth.user?.email && (
@@ -92,8 +108,54 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               </div>
             </div>
 
-            {/* Login/Register - only show when not authenticated */}
-            {!auth.isAuthenticated && (
+            {auth.isLoading && (
+              <DropdownMenu.Item
+                disabled
+                className={classNames(
+                  'flex items-center gap-2 px-4 py-2.5',
+                  'text-sm text-gray-500 dark:text-gray-400',
+                  'cursor-default',
+                  'outline-none',
+                )}
+              >
+                <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
+                {t('authChecking', '正在检查登录状态...')}
+              </DropdownMenu.Item>
+            )}
+
+            {!auth.isLoading && !auth.isAuthConfigured && (
+              <DropdownMenu.Item
+                disabled
+                className={classNames(
+                  'flex items-center gap-2 px-4 py-2.5',
+                  'text-sm text-amber-700 dark:text-amber-400',
+                  'bg-amber-50/60 dark:bg-amber-500/10',
+                  'cursor-default',
+                  'outline-none',
+                )}
+              >
+                <div className="i-ph:warning-circle w-4 h-4" />
+                {t('authNotConfigured', '未配置账号登录（需配置 Supabase Auth）')}
+              </DropdownMenu.Item>
+            )}
+
+            {!auth.isLoading && auth.isAuthConfigured && !auth.isAuthenticated && hasPlatformConnection && (
+              <DropdownMenu.Item
+                disabled
+                className={classNames(
+                  'flex items-center gap-2 px-4 py-2.5',
+                  'text-sm text-blue-700 dark:text-blue-300',
+                  'bg-blue-50/60 dark:bg-blue-500/10',
+                  'cursor-default',
+                  'outline-none',
+                )}
+              >
+                <div className="i-ph:info w-4 h-4" />
+                {t('platformConnectedButNotSignedIn', '已连接平台，但未登录应用账号')}
+              </DropdownMenu.Item>
+            )}
+
+            {!auth.isLoading && auth.isAuthConfigured && !auth.isAuthenticated && (
               <DropdownMenu.Item
                 className={classNames(
                   'flex items-center gap-2 px-4 py-2.5',
@@ -107,25 +169,27 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
                 onClick={() => setShowAuthDialog(true)}
               >
                 <div className="i-ph:sign-in w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
-                {t('signIn', '登录 / 注册')}
+                {t('signIn', '账号登录 / 注册')}
               </DropdownMenu.Item>
             )}
 
-            <DropdownMenu.Item
-              className={classNames(
-                'flex items-center gap-2 px-4 py-2.5',
-                'text-sm text-gray-700 dark:text-gray-200',
-                'hover:bg-purple-50 dark:hover:bg-purple-500/10',
-                'hover:text-purple-500 dark:hover:text-purple-400',
-                'cursor-pointer transition-all duration-200',
-                'outline-none',
-                'group',
-              )}
-              onClick={() => onSelectTab('profile')}
-            >
-              <div className="i-ph:user-circle w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
-              {t('editProfile')}
-            </DropdownMenu.Item>
+            {auth.isAuthenticated && (
+              <DropdownMenu.Item
+                className={classNames(
+                  'flex items-center gap-2 px-4 py-2.5',
+                  'text-sm text-gray-700 dark:text-gray-200',
+                  'hover:bg-purple-50 dark:hover:bg-purple-500/10',
+                  'hover:text-purple-500 dark:hover:text-purple-400',
+                  'cursor-pointer transition-all duration-200',
+                  'outline-none',
+                  'group',
+                )}
+                onClick={() => onSelectTab('profile')}
+              >
+                <div className="i-ph:user-circle w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+                {t('editProfile')}
+              </DropdownMenu.Item>
+            )}
 
             <DropdownMenu.Item
               className={classNames(

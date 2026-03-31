@@ -19,6 +19,8 @@ export interface AuthState {
   profile: UserProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isAuthConfigured: boolean;
+  sessionExpired: boolean;
 }
 
 const initialState: AuthState = {
@@ -26,9 +28,22 @@ const initialState: AuthState = {
   profile: null,
   isLoading: true,
   isAuthenticated: false,
+  isAuthConfigured: Boolean(supabaseClient),
+  sessionExpired: false,
 };
 
 export const authStore = atom<AuthState>(initialState);
+let isManualSignOut = false;
+
+function clearLocalAuthState(options?: { sessionExpired?: boolean }) {
+  authStore.set({
+    ...initialState,
+    isLoading: false,
+    isAuthConfigured: Boolean(supabaseClient),
+    sessionExpired: options?.sessionExpired ?? false,
+  });
+  updateProfile({ username: '', bio: '', avatar: '' });
+}
 
 function syncToProfileStore(profile: UserProfile | null, user: User | null) {
   if (!profile && !user) {
@@ -45,7 +60,11 @@ function syncToProfileStore(profile: UserProfile | null, user: User | null) {
 export async function initAuth() {
   if (!supabaseClient) {
     logger.info('Supabase client not available, skipping auth init');
-    authStore.set({ ...authStore.get(), isLoading: false });
+    authStore.set({
+      ...initialState,
+      isLoading: false,
+      isAuthConfigured: false,
+    });
     return;
   }
 
@@ -63,15 +82,23 @@ export async function initAuth() {
       profile,
       isLoading: false,
       isAuthenticated: true,
+      isAuthConfigured: true,
+      sessionExpired: false,
     });
     syncToProfileStore(profile, session.user);
   } else {
     logger.info('No existing session');
-    authStore.set({ ...initialState, isLoading: false });
+    authStore.set({
+      ...initialState,
+      isLoading: false,
+      isAuthConfigured: true,
+      sessionExpired: false,
+    });
   }
 
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
     logger.info('Auth state changed:', event);
+    const previousState = authStore.get();
 
     if (event === 'SIGNED_IN' && session?.user) {
       logger.info('User signed in:', session.user.email);
@@ -81,12 +108,57 @@ export async function initAuth() {
         profile,
         isLoading: false,
         isAuthenticated: true,
+        isAuthConfigured: true,
+        sessionExpired: false,
       });
       syncToProfileStore(profile, session.user);
+    } else if (event === 'PASSWORD_RECOVERY' && session?.user) {
+      const isRecoveryFromLink =
+        typeof window !== 'undefined' && typeof window.location?.hash === 'string'
+          ? window.location.hash.includes('type=recovery')
+          : false;
+
+      if (isRecoveryFromLink) {
+        logger.warn('Recovery link flow detected; OTP-only mode enabled, ignoring link session');
+
+        if (!supabaseClient) {
+          return;
+        }
+
+        isManualSignOut = true;
+        await supabaseClient.auth.signOut({ scope: 'local' });
+        isManualSignOut = false;
+
+        if (typeof window !== 'undefined' && window.location.hash) {
+          window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+        }
+
+        return;
+      }
+
+      // OTP verification flow: keep recovery session so updatePassword can succeed.
+      authStore.set({
+        ...previousState,
+        user: session.user,
+        isLoading: false,
+        isAuthenticated: true,
+        isAuthConfigured: true,
+        sessionExpired: false,
+      });
+    } else if (event === 'USER_UPDATED' && session?.user) {
+      authStore.set({
+        ...previousState,
+        user: session.user,
+        isLoading: false,
+        isAuthenticated: true,
+        isAuthConfigured: true,
+        sessionExpired: false,
+      });
     } else if (event === 'SIGNED_OUT') {
       logger.info('User signed out');
-      authStore.set({ ...initialState, isLoading: false });
-      updateProfile({ username: '', bio: '', avatar: '' });
+      const expired = previousState.isAuthenticated && !isManualSignOut;
+      clearLocalAuthState({ sessionExpired: expired });
+      isManualSignOut = false;
     }
   });
 }
@@ -165,12 +237,124 @@ export async function signInWithOAuth(provider: 'github' | 'google') {
 }
 
 export async function signOut() {
+  logger.info('Signing out...');
+  isManualSignOut = true;
+
+  // Optimistically clear local state first, so UI updates immediately.
+  clearLocalAuthState({ sessionExpired: false });
+
   if (!supabaseClient) {
     return;
   }
 
-  logger.info('Signing out...');
-  await supabaseClient.auth.signOut();
+  try {
+    // Local scope is immediate and avoids waiting on remote token revocation.
+    await supabaseClient.auth.signOut({ scope: 'local' });
+  } catch (error) {
+    logger.error('Sign out failed:', error);
+  } finally {
+    isManualSignOut = false;
+  }
+}
+
+export function acknowledgeSessionExpired() {
+  const state = authStore.get();
+
+  if (!state.sessionExpired) {
+    return;
+  }
+
+  authStore.set({ ...state, sessionExpired: false });
+}
+
+export async function sendPasswordResetEmail(email: string) {
+  if (!supabaseClient) {
+    throw new Error('Supabase not configured');
+  }
+
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin,
+  });
+
+  if (error) {
+    logger.error('Password reset email failed:', error.message);
+    throw error;
+  }
+}
+
+export async function verifyRecoveryOtp(email: string, token: string) {
+  if (!supabaseClient) {
+    throw new Error('Supabase not configured');
+  }
+
+  const { data, error } = await supabaseClient.auth.verifyOtp({
+    email,
+    token,
+    type: 'recovery',
+  });
+
+  if (error) {
+    logger.error('Verify recovery OTP failed:', error.message);
+    throw error;
+  }
+
+  if (data.user) {
+    const state = authStore.get();
+    authStore.set({
+      ...state,
+      user: data.user,
+      isAuthenticated: true,
+      isLoading: false,
+      isAuthConfigured: true,
+      sessionExpired: false,
+    });
+  }
+
+  return data;
+}
+
+export async function resendVerificationEmail() {
+  const state = authStore.get();
+
+  if (!supabaseClient || !state.user?.email) {
+    throw new Error('Not authenticated');
+  }
+
+  const { error } = await supabaseClient.auth.resend({
+    type: 'signup',
+    email: state.user.email,
+    options: {
+      emailRedirectTo: window.location.origin,
+    },
+  });
+
+  if (error) {
+    logger.error('Resend verification email failed:', error.message);
+    throw error;
+  }
+}
+
+export async function updatePassword(newPassword: string) {
+  if (!supabaseClient) {
+    throw new Error('Supabase not configured');
+  }
+
+  const { data, error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+  if (error) {
+    logger.error('Update password failed:', error.message);
+    throw error;
+  }
+
+  const state = authStore.get();
+  authStore.set({
+    ...state,
+    user: data.user ?? state.user,
+    isAuthenticated: true,
+    isLoading: false,
+    isAuthConfigured: true,
+    sessionExpired: false,
+  });
 }
 
 export async function updateUserProfile(updates: { username?: string; bio?: string }) {

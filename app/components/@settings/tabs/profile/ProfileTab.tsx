@@ -3,7 +3,7 @@ import { useStore } from '@nanostores/react';
 import { useTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 import { profileStore, updateProfile } from '~/lib/stores/profile';
-import { authStore, updateUserProfile, uploadAvatar } from '~/lib/stores/auth';
+import { authStore, updateUserProfile, uploadAvatar, resendVerificationEmail } from '~/lib/stores/auth';
 import { toast } from 'react-toastify';
 import { Image } from '~/components/ui/Image';
 
@@ -15,6 +15,7 @@ export default function ProfileTab() {
   const auth = useStore(authStore);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
 
   // Local draft state for username and bio
   const [draftUsername, setDraftUsername] = useState(profile.username);
@@ -27,7 +28,20 @@ export default function ProfileTab() {
   }, [profile.username, profile.bio]);
 
   const isAuthenticated = auth.isAuthenticated;
+  const isEmailVerified = Boolean(auth.user?.email_confirmed_at);
   const isDirty = draftUsername !== profile.username || draftBio !== profile.bio;
+
+  const handleResendVerification = async () => {
+    try {
+      setIsResendingVerification(true);
+      await resendVerificationEmail();
+      toast.success('验证邮件已重新发送');
+    } catch (error: any) {
+      toast.error(error.message || '发送验证邮件失败');
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!isDirty) {
@@ -117,6 +131,33 @@ export default function ProfileTab() {
                 {t('profileTab.syncedToCloud', { email: auth.user.email })}
               </span>
             </div>
+          </div>
+        )}
+        {isAuthenticated && auth.user?.email && !isEmailVerified && (
+          <div
+            className={classNames(
+              'flex items-center gap-3 px-4 py-3 rounded-xl',
+              'bg-amber-50 dark:bg-amber-500/10',
+              'border border-amber-200/50 dark:border-amber-500/20',
+            )}
+          >
+            <div className="i-ph:warning-circle w-5 h-5 text-amber-500" />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm text-amber-700 dark:text-amber-300">邮箱尚未验证，部分功能可能受限</span>
+            </div>
+            <button
+              onClick={handleResendVerification}
+              disabled={isResendingVerification}
+              className={classNames(
+                'px-3 py-1.5 rounded-lg text-xs font-medium',
+                'bg-amber-100 hover:bg-amber-200 text-amber-700',
+                'dark:bg-amber-500/20 dark:hover:bg-amber-500/30 dark:text-amber-200',
+                'transition-colors',
+                'disabled:opacity-50 disabled:cursor-not-allowed',
+              )}
+            >
+              {isResendingVerification ? '发送中...' : '重发验证邮件'}
+            </button>
           </div>
         )}
 

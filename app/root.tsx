@@ -11,6 +11,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
 import { cssTransition, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
@@ -116,9 +117,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 import { logStore } from './lib/stores/logs';
+import { authStore, acknowledgeSessionExpired } from '~/lib/stores/auth';
+import { AuthDialog } from '~/components/@settings/core/AuthDialog';
 
 export default function App() {
   const theme = useStore(themeStore);
+  const auth = useStore(authStore);
+  const showGlobalAuthDialog = auth.sessionExpired;
 
   useEffect(() => {
     logStore.logSystem('Application initialized', {
@@ -147,9 +152,18 @@ export default function App() {
       });
   }, []);
 
+  useEffect(() => {
+    if (!auth.sessionExpired) {
+      return;
+    }
+
+    toast.error('登录会话已过期，请重新登录');
+  }, [auth.sessionExpired]);
+
   return (
     <Layout>
       <Outlet />
+      <AuthDialog open={showGlobalAuthDialog} onClose={acknowledgeSessionExpired} initialMode="login" />
     </Layout>
   );
 }
