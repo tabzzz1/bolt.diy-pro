@@ -1,9 +1,9 @@
 ---
-status: complete
+status: diagnosed
 phase: 01-governance-safe-rollout
 source: [01-01-SUMMARY.md, 01-02-SUMMARY.md]
 started: 2026-04-01T12:46:07Z
-updated: 2026-04-01T13:07:14Z
+updated: 2026-04-01T13:10:48Z
 ---
 
 ## Current Test
@@ -67,5 +67,15 @@ blocked: 0
   reason: "User reported: 没有五个开关，只有LifeBegins Growth domains controlled by governance flags. 下面是空白。"
   severity: major
   test: 6
-  artifacts: []
-  missing: []
+  root_cause: "FeaturesTab 在渲染前对 lifebegins 列表执行 .filter((feature) => feature.enabled)，而五个开关默认值都为 false，导致区块标题显示但开关列表为空。"
+  artifacts:
+    - path: "app/components/@settings/tabs/features/FeaturesTab.tsx"
+      issue: "lifebegins 项按 enabled 过滤，默认 false 被全部隐藏"
+    - path: "app/lib/stores/settings.ts"
+      issue: "lifebegins 五个开关默认值均为 false"
+    - path: "app/lib/hooks/useSettings.ts"
+      issue: "状态与 setter 已正确暴露，用于排除接线缺失假设"
+  missing:
+    - "移除 lifebegins 渲染前的 enabled 过滤，确保五个开关始终可见"
+    - "仅使用 enabled 控制 Switch 的 checked 状态，不作为可见性条件"
+  debug_session: ".planning/debug/DEBUG-features-tab-lifebegins-switches-missing.md"
