@@ -45,4 +45,8 @@ changelogUI.md
 docs/instructions/Roadmap.md
 .cursorrules
 *.md
+!.planning/
+!.planning/**/*.md
+!.planning/**/*.json
+!AGENTS.md
 .qodo
