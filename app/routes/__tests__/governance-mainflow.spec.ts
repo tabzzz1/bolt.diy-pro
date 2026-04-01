@@ -1,6 +1,90 @@
-import { describe, expect, it } from 'vitest';
+import React from 'react';
+import { cleanup, fireEvent, render, within } from '@testing-library/react';
+import { JSDOM } from 'jsdom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loader as githubUserLoader } from '~/routes/api.github-user';
 import { assertGrowthFeatureEnabled } from '~/lib/governance/featureFlags.server';
+import FeaturesTab from '~/components/@settings/tabs/features/FeaturesTab';
+
+const mocked = vi.hoisted(() => {
+  return {
+    useSettingsMock: vi.fn(),
+    toastSuccess: vi.fn(),
+    toastInfo: vi.fn(),
+    toastError: vi.fn(),
+  };
+});
+
+vi.mock('~/lib/hooks/useSettings', () => ({
+  useSettings: mocked.useSettingsMock,
+}));
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+vi.mock('react-toastify', () => ({
+  toast: {
+    success: mocked.toastSuccess,
+    info: mocked.toastInfo,
+    error: mocked.toastError,
+  },
+}));
+
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, ...props }: Record<string, unknown>) => React.createElement('div', props, children),
+  },
+}));
+
+type LifeBeginsFlagOverrides = {
+  lifebeginsAnchorEnabled?: boolean;
+  lifebeginsForkEnabled?: boolean;
+  lifebeginsFailureEnabled?: boolean;
+  lifebeginsTimelineEnabled?: boolean;
+  lifebeginsDnaEnabled?: boolean;
+};
+
+function createSettings(overrides: LifeBeginsFlagOverrides = {}) {
+  return {
+    autoSelectTemplate: true,
+    isLatestBranch: false,
+    contextOptimizationEnabled: true,
+    eventLogs: true,
+    setAutoSelectTemplate: vi.fn(),
+    enableLatestBranch: vi.fn(),
+    enableContextOptimization: vi.fn(),
+    setEventLogs: vi.fn(),
+    setPromptId: vi.fn(),
+    promptId: 'default',
+    lifebeginsAnchorEnabled: overrides.lifebeginsAnchorEnabled ?? false,
+    lifebeginsForkEnabled: overrides.lifebeginsForkEnabled ?? false,
+    lifebeginsFailureEnabled: overrides.lifebeginsFailureEnabled ?? false,
+    lifebeginsTimelineEnabled: overrides.lifebeginsTimelineEnabled ?? false,
+    lifebeginsDnaEnabled: overrides.lifebeginsDnaEnabled ?? false,
+    setLifeBeginsAnchorEnabled: vi.fn(),
+    setLifeBeginsForkEnabled: vi.fn(),
+    setLifeBeginsFailureEnabled: vi.fn(),
+    setLifeBeginsTimelineEnabled: vi.fn(),
+    setLifeBeginsDnaEnabled: vi.fn(),
+  };
+}
+
+function mountDom() {
+  const dom = new JSDOM('<!doctype html><html><body></body></html>');
+  (globalThis as any).window = dom.window;
+  (globalThis as any).document = dom.window.document;
+  (globalThis as any).navigator = dom.window.navigator;
+  (globalThis as any).HTMLElement = dom.window.HTMLElement;
+  (globalThis as any).Node = dom.window.Node;
+  (globalThis as any).getComputedStyle = dom.window.getComputedStyle.bind(dom.window);
+
+  return () => {
+    dom.window.close();
+  };
+}
 
 describe('governance mainflow safety', () => {
   it('keeps non-growth main API path usable when all growth domains are disabled', async () => {
@@ -36,5 +120,51 @@ describe('governance mainflow safety', () => {
       expect(payload.message).toBe('Feature is disabled by governance policy');
       expect(inputDraft).toBe('keep current chat draft');
     }
+  });
+});
+
+describe('governance features tab visibility', () => {
+  let unmountDom: (() => void) | null = null;
+
+  beforeEach(() => {
+    unmountDom = mountDom();
+    mocked.useSettingsMock.mockReset();
+    mocked.toastSuccess.mockReset();
+    mocked.toastInfo.mockReset();
+    mocked.toastError.mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+    unmountDom?.();
+    unmountDom = null;
+  });
+
+  it('renders five lifebegins switch cards even when all lifebegins flags are false', () => {
+    mocked.useSettingsMock.mockReturnValue(createSettings());
+
+    const { getByText } = render(React.createElement(FeaturesTab));
+
+    expect(getByText('Intent Anchor')).toBeTruthy();
+    expect(getByText('Fork Futures')).toBeTruthy();
+    expect(getByText('Failure Museum')).toBeTruthy();
+    expect(getByText('Life Timeline')).toBeTruthy();
+    expect(getByText('Builder DNA')).toBeTruthy();
+  });
+
+  it('keeps toggle behavior wired to existing setter and success toast', () => {
+    const settings = createSettings();
+    mocked.useSettingsMock.mockReturnValue(settings);
+
+    const { getByText } = render(React.createElement(FeaturesTab));
+
+    const anchorCard = getByText('Intent Anchor').closest('.group');
+    expect(anchorCard).toBeTruthy();
+
+    const anchorSwitch = within(anchorCard as HTMLElement).getByRole('switch');
+    fireEvent.click(anchorSwitch);
+
+    expect(settings.setLifeBeginsAnchorEnabled).toHaveBeenCalledWith(true);
+    expect(mocked.toastSuccess).toHaveBeenCalledWith('lifebegins.anchor enabled');
   });
 });
