@@ -237,7 +237,7 @@ export default function FeaturesTab() {
         }
       } catch (error) {
         if (!handleFeatureDisabledError(error)) {
-          toast.error(t('errorSavingSettings'));
+          toast.error(t('saveFail'));
         }
       }
     },

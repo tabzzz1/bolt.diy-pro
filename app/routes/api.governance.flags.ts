@@ -99,11 +99,11 @@ async function governanceFlagsHandler({ request, context }: { request: Request; 
 }
 
 export const loader = withSecurity(governanceFlagsHandler, {
-  allowedMethods: ["GET", "PATCH"],
+  allowedMethods: ALLOWED_METHODS,
   rateLimit: true,
 });
 
 export const action = withSecurity(governanceFlagsHandler, {
-  allowedMethods: ["GET", "PATCH"],
+  allowedMethods: ALLOWED_METHODS,
   rateLimit: true,
 });
