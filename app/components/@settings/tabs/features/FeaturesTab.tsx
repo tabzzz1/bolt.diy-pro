@@ -7,6 +7,7 @@ import { classNames } from '~/utils/classNames';
 import { toast } from 'react-toastify';
 import { PromptLibrary } from '~/lib/common/prompt-library';
 import { useTranslation } from 'react-i18next';
+import { buildLifeBeginsFeatures } from './lifebeginsFeatures';
 
 interface FeatureToggle {
   id: string;
@@ -291,43 +292,13 @@ export default function FeaturesTab() {
         tooltip: t('eventLoggingTooltip'),
       },
     ],
-    lifebegins: [
-      {
-        id: 'lifebegins.anchor',
-        title: 'Intent Anchor',
-        description: 'lifebegins.anchor',
-        icon: 'i-ph:target',
-        enabled: lifebeginsAnchorEnabled,
-      },
-      {
-        id: 'lifebegins.fork',
-        title: 'Fork Futures',
-        description: 'lifebegins.fork',
-        icon: 'i-ph:git-fork',
-        enabled: lifebeginsForkEnabled,
-      },
-      {
-        id: 'lifebegins.failure',
-        title: 'Failure Museum',
-        description: 'lifebegins.failure',
-        icon: 'i-ph:warning-circle',
-        enabled: lifebeginsFailureEnabled,
-      },
-      {
-        id: 'lifebegins.timeline',
-        title: 'Life Timeline',
-        description: 'lifebegins.timeline',
-        icon: 'i-ph:timeline',
-        enabled: lifebeginsTimelineEnabled,
-      },
-      {
-        id: 'lifebegins.dna',
-        title: 'Builder DNA',
-        description: 'lifebegins.dna',
-        icon: 'i-ph:dna',
-        enabled: lifebeginsDnaEnabled,
-      },
-    ].filter((feature) => feature.enabled),
+    lifebegins: buildLifeBeginsFeatures({
+      lifebeginsAnchorEnabled,
+      lifebeginsForkEnabled,
+      lifebeginsFailureEnabled,
+      lifebeginsTimelineEnabled,
+      lifebeginsDnaEnabled,
+    }),
     beta: [],
   };
 
