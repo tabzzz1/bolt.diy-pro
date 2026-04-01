@@ -42,7 +42,7 @@
 
 - [ ] **METR-01**: 系统可记录 GSR 所需事件并支持按会话统计“有效成长会话”
 - [x] **METR-02**: 新能力通过 feature flag 控制，支持快速回滚
-- [ ] **METR-03**: 用户数据支持最小化采集与导出/删除能力边界
+- [x] **METR-03**: 用户数据支持最小化采集与导出/删除能力边界
 
 ## v2 Requirements
 
@@ -91,7 +91,7 @@
 | DNA-03 | Phase 6 | Pending |
 | METR-01 | Phase 6 | Pending |
 | METR-02 | Phase 1 | Complete |
-| METR-03 | Phase 1 | Pending |
+| METR-03 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 21 total
