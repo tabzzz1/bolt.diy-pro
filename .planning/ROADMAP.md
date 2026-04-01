@@ -29,7 +29,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. 运营可通过 feature flag 对新能力进行启用/禁用，并在异常时快速回滚。
   2. 当功能被关闭时，用户仍可无感使用原有聊天-工作台主链路。
   3. 用户可在产品中明确看到并执行其数据导出/删除边界能力。  
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 01-governance-safe-rollout-01-PLAN.md — 双层开关治理主干、统一拒绝语义与主链路回归
+- [ ] 01-governance-safe-rollout-02-PLAN.md — growth 域导出/删除边界与最小匿名审计闭环
 
 ### Phase 2: Intent Anchor Experience
 **Goal**: 用户在会话开始与执行过程中始终有清晰目标、边界与可追溯变更  
