@@ -215,102 +215,134 @@ const ActionList = memo(({ actions }: ActionListProps) => {
   const { t } = useTranslation('chat');
   const previews = useStore(workbenchStore.previews);
   const hasReadyPreview = previews.some((preview) => preview.ready);
+  const fileActions = actions.filter((action) => action.type === 'file');
+  const runtimeActions = actions.filter((action) => action.type === 'shell' || action.type === 'start');
+
+  /**
+   * Render a single action row.
+   * We intentionally reuse the existing row behavior to avoid regressions in click, status, and preview interactions.
+   */
+  const renderActionRow = (action: ActionState, index: number, totalInSection: number) => {
+    const { status, type, content } = action;
+    const isLast = index === totalInSection - 1;
+    const displayStatus: ActionState['status'] =
+      type === 'start' && status === 'running' && hasReadyPreview ? 'complete' : status;
+
+    return (
+      <motion.li
+        key={`${type}-${index}-${(action as any).filePath || ''}`}
+        variants={actionVariants}
+        initial="hidden"
+        animate="visible"
+        transition={{
+          duration: 0.2,
+          ease: cubicEasingFn,
+        }}
+      >
+        <div className="flex items-center gap-2 text-sm">
+          {type !== 'file' && (
+            <div className={classNames('text-lg', getIconColor(displayStatus))}>
+              {displayStatus === 'running' ? (
+                <>
+                  {type !== 'start' ? (
+                    <div className="i-svg-spinners:90-ring-with-bg"></div>
+                  ) : (
+                    <div className="i-ph:terminal-window-duotone"></div>
+                  )}
+                </>
+              ) : displayStatus === 'pending' ? (
+                <div className="i-ph:circle-duotone"></div>
+              ) : displayStatus === 'complete' ? (
+                <div className="i-ph:check"></div>
+              ) : displayStatus === 'failed' || displayStatus === 'aborted' ? (
+                <div className="i-ph:x"></div>
+              ) : null}
+            </div>
+          )}
+          {type === 'file' ? (
+            <button
+              className={classNames(
+                'w-full min-w-0 rounded-md px-2 py-1.5 bg-transparent border-none text-left cursor-pointer',
+                'hover:bg-bolt-elements-background-depth-3 transition-colors',
+                'flex items-center gap-2',
+              )}
+              onClick={() => openArtifactInWorkbench(action.filePath)}
+              title={action.filePath}
+            >
+              <div className={classNames('shrink-0 text-[14px]', getIconColor(displayStatus))}>
+                {displayStatus === 'running' ? (
+                  <div className="i-svg-spinners:90-ring-with-bg" />
+                ) : displayStatus === 'complete' ? (
+                  <div className="i-ph:check-circle" />
+                ) : displayStatus === 'failed' || displayStatus === 'aborted' ? (
+                  <div className="i-ph:x-circle" />
+                ) : (
+                  <div className="i-ph:circle-duotone" />
+                )}
+              </div>
+              <div className="shrink-0 text-bolt-elements-textSecondary">{renderFileTypeIcon(action.filePath)}</div>
+              <div className="truncate text-sm text-bolt-elements-textPrimary font-medium max-w-[40%]">
+                {getFileBaseName(action.filePath)}
+              </div>
+              <div className="truncate text-xs text-bolt-elements-textTertiary flex-1">{action.filePath}</div>
+            </button>
+          ) : type === 'shell' ? (
+            <div className="flex items-center w-full min-h-[28px]">
+              <span className="flex-1">{t('artifact.runCommand')}</span>
+            </div>
+          ) : type === 'start' ? (
+            <a
+              onClick={(e) => {
+                e.preventDefault();
+                workbenchStore.currentView.set('preview');
+              }}
+              className="flex items-center w-full min-h-[28px]"
+            >
+              <span className="flex-1">{t('artifact.startApplication')}</span>
+            </a>
+          ) : null}
+        </div>
+        {(type === 'shell' || type === 'start') && (
+          <ShellCodeBlock
+            classsName={classNames('mt-1', {
+              'mb-3.5': !isLast,
+            })}
+            code={content}
+          />
+        )}
+      </motion.li>
+    );
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-      <ul className="list-none space-y-3">
-        {actions.map((action, index) => {
-          const { status, type, content } = action;
-          const isLast = index === actions.length - 1;
-          const displayStatus: ActionState['status'] =
-            type === 'start' && status === 'running' && hasReadyPreview ? 'complete' : status;
+      <div className="space-y-3">
+        {fileActions.length > 0 && (
+          <div className="rounded-lg border border-bolt-elements-borderColor/60 p-2">
+            <div className="px-2 py-1 text-[11px] uppercase tracking-wide text-bolt-elements-textTertiary">
+              {t('artifact.createFile')}
+            </div>
+            <ul className="list-none space-y-2">
+              {fileActions.map((action, index) => renderActionRow(action, index, fileActions.length))}
+            </ul>
+          </div>
+        )}
 
-          return (
-            <motion.li
-              key={index}
-              variants={actionVariants}
-              initial="hidden"
-              animate="visible"
-              transition={{
-                duration: 0.2,
-                ease: cubicEasingFn,
-              }}
-            >
-              <div className="flex items-center gap-2 text-sm">
-                {type !== 'file' && (
-                  <div className={classNames('text-lg', getIconColor(displayStatus))}>
-                    {displayStatus === 'running' ? (
-                      <>
-                        {type !== 'start' ? (
-                          <div className="i-svg-spinners:90-ring-with-bg"></div>
-                        ) : (
-                          <div className="i-ph:terminal-window-duotone"></div>
-                        )}
-                      </>
-                    ) : displayStatus === 'pending' ? (
-                      <div className="i-ph:circle-duotone"></div>
-                    ) : displayStatus === 'complete' ? (
-                      <div className="i-ph:check"></div>
-                    ) : displayStatus === 'failed' || displayStatus === 'aborted' ? (
-                      <div className="i-ph:x"></div>
-                    ) : null}
-                  </div>
-                )}
-                {type === 'file' ? (
-                  <button
-                    className={classNames(
-                      'w-full min-w-0 rounded-md px-2 py-1.5 bg-transparent border-none text-left cursor-pointer',
-                      'hover:bg-bolt-elements-background-depth-3 transition-colors',
-                      'flex items-center gap-2',
-                    )}
-                    onClick={() => openArtifactInWorkbench(action.filePath)}
-                    title={action.filePath}
-                  >
-                    <div className={classNames('shrink-0 text-[14px]', getIconColor(displayStatus))}>
-                      {displayStatus === 'running' ? (
-                        <div className="i-svg-spinners:90-ring-with-bg" />
-                      ) : displayStatus === 'complete' ? (
-                        <div className="i-ph:check-circle" />
-                      ) : displayStatus === 'failed' || displayStatus === 'aborted' ? (
-                        <div className="i-ph:x-circle" />
-                      ) : (
-                        <div className="i-ph:circle-duotone" />
-                      )}
-                    </div>
-                    <div className="shrink-0 text-bolt-elements-textSecondary">{renderFileTypeIcon(action.filePath)}</div>
-                    <div className="truncate text-sm text-bolt-elements-textPrimary font-medium max-w-[40%]">
-                      {getFileBaseName(action.filePath)}
-                    </div>
-                    <div className="truncate text-xs text-bolt-elements-textTertiary flex-1">{action.filePath}</div>
-                  </button>
-                ) : type === 'shell' ? (
-                  <div className="flex items-center w-full min-h-[28px]">
-                    <span className="flex-1">{t('artifact.runCommand')}</span>
-                  </div>
-                ) : type === 'start' ? (
-                  <a
-                    onClick={(e) => {
-                      e.preventDefault();
-                      workbenchStore.currentView.set('preview');
-                    }}
-                    className="flex items-center w-full min-h-[28px]"
-                  >
-                    <span className="flex-1">{t('artifact.startApplication')}</span>
-                  </a>
-                ) : null}
-              </div>
-              {(type === 'shell' || type === 'start') && (
-                <ShellCodeBlock
-                  classsName={classNames('mt-1', {
-                    'mb-3.5': !isLast,
-                  })}
-                  code={content}
-                />
-              )}
-            </motion.li>
-          );
-        })}
-      </ul>
+        {fileActions.length > 0 && runtimeActions.length > 0 && (
+          <div className="px-2 text-xs text-bolt-elements-textTertiary">{t('artifact.prepareInstallAndStart')}</div>
+        )}
+
+        {runtimeActions.length > 0 && (
+          <div className="rounded-lg border border-bolt-elements-borderColor/60 p-2">
+            <div className="px-2 py-1 text-[11px] uppercase tracking-wide text-bolt-elements-textTertiary">
+              {t('artifact.runCommand')} & {t('artifact.startApplication')}
+            </div>
+            <ul className="list-none space-y-2">
+              {runtimeActions.map((action, index) => renderActionRow(action, index, runtimeActions.length))}
+            </ul>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 });

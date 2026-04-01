@@ -906,6 +906,7 @@ const zh = {
       initialFilesCreated: '初始文件已创建',
       creatingInitialFiles: '正在创建初始文件',
       createFile: '创建',
+      prepareInstallAndStart: '准备安装依赖并启动应用',
       runCommand: '执行命令',
       startApplication: '启动应用',
       chatSummaryHeading: '摘要',

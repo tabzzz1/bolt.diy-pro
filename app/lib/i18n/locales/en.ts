@@ -969,6 +969,7 @@ const en = {
       initialFilesCreated: 'Initial files created',
       creatingInitialFiles: 'Creating initial files',
       createFile: 'Create',
+      prepareInstallAndStart: 'Preparing to install dependencies and start the app',
       runCommand: 'Run command',
       startApplication: 'Start Application',
       chatSummaryHeading: 'Summary',
