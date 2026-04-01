@@ -65,30 +65,30 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ANCH-01 | TBD | Pending |
-| ANCH-02 | TBD | Pending |
-| ANCH-03 | TBD | Pending |
-| ANCH-04 | TBD | Pending |
-| BRCH-01 | TBD | Pending |
-| BRCH-02 | TBD | Pending |
-| BRCH-03 | TBD | Pending |
-| BRCH-04 | TBD | Pending |
-| FAIL-01 | TBD | Pending |
-| FAIL-02 | TBD | Pending |
-| FAIL-03 | TBD | Pending |
-| FAIL-04 | TBD | Pending |
-| TIME-01 | TBD | Pending |
-| TIME-02 | TBD | Pending |
-| TIME-03 | TBD | Pending |
-| METR-01 | TBD | Pending |
-| METR-02 | TBD | Pending |
-| METR-03 | TBD | Pending |
+| ANCH-01 | Phase 1 | Pending |
+| ANCH-02 | Phase 1 | Pending |
+| ANCH-03 | Phase 1 | Pending |
+| ANCH-04 | Phase 1 | Pending |
+| BRCH-01 | Phase 2 | Pending |
+| BRCH-02 | Phase 2 | Pending |
+| BRCH-03 | Phase 2 | Pending |
+| BRCH-04 | Phase 2 | Pending |
+| FAIL-01 | Phase 3 | Pending |
+| FAIL-02 | Phase 3 | Pending |
+| FAIL-03 | Phase 3 | Pending |
+| FAIL-04 | Phase 3 | Pending |
+| TIME-01 | Phase 4 | Pending |
+| TIME-02 | Phase 4 | Pending |
+| TIME-03 | Phase 4 | Pending |
+| METR-01 | Phase 5 | Pending |
+| METR-02 | Phase 5 | Pending |
+| METR-03 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18 ⚠️
+- Mapped to phases: 18
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-01*
-*Last updated: 2026-04-01 after initial definition*
+*Last updated: 2026-04-01 after roadmap phase mapping*
