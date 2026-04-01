@@ -158,7 +158,7 @@ export const STORAGE_KEY_GITHUB_STATS_CACHE = 'github_stats_cache';
 /**
  * 生成某个聊天会话绑定的 Vercel 项目 ID 的 key
  * 值类型：字符串（Vercel project ID）
- * 读写位置：app/components/chat/VercelDeploymentLink.client.tsx,
+ * 读写位置：app/components/chat/integrations/deploy/VercelDeploymentLink.client.tsx,
  *            app/components/deploy/VercelDeploy.client.tsx
  */
 export const storageKeyVercelProject = (chatId: string) => `vercel-project-${chatId}`;
@@ -173,7 +173,7 @@ export const storageKeyNetlifySite = (chatId: string) => `netlify-site-${chatId}
 /**
  * 生成某个聊天会话绑定的 Supabase 项目 ID 的 key
  * 值类型：字符串（Supabase project ID）
- * 读写位置：app/components/chat/SupabaseConnection.tsx
+ * 读写位置：app/components/chat/integrations/supabase/SupabaseConnection.tsx
  */
 export const storageKeySupabaseProject = (chatId: string) => `supabase-project-${chatId}`;
 

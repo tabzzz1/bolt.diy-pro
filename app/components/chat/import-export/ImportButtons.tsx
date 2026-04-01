@@ -1,7 +1,7 @@
 import type { Message } from 'ai';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { ImportFolderButton } from '~/components/chat/ImportFolderButton';
+import { ImportFolderButton } from '~/components/chat/import-export/ImportFolderButton';
 import { Button } from '~/components/ui/Button';
 import { classNames } from '~/utils/classNames';
 

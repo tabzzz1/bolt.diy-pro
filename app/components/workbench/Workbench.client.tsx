@@ -22,7 +22,7 @@ import { Preview } from './Preview';
 
 import { usePreviewStore } from '~/lib/stores/previews';
 import type { ElementInfo } from './Inspector';
-import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
+import { ExportChatButton } from '~/components/chat/import-export/ExportChatButton';
 import { useChatHistory } from '~/lib/persistence';
 import { streamingState } from '~/lib/stores/streaming';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
