@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. 用户可在产品中明确看到并执行其数据导出/删除边界能力。  
 **Plans**: 2 plans
 Plans:
-- [ ] 01-governance-safe-rollout-01-PLAN.md — 双层开关治理主干、统一拒绝语义与主链路回归
+- [x] 01-governance-safe-rollout-01-PLAN.md — 双层开关治理主干、统一拒绝语义与主链路回归
 - [ ] 01-governance-safe-rollout-02-PLAN.md — growth 域导出/删除边界与最小匿名审计闭环
 
 ### Phase 2: Intent Anchor Experience
