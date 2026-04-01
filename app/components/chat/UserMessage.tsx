@@ -72,7 +72,7 @@ export function UserMessage({ content, parts, onDelete, onEdit, isEditing }: Use
       <div className="group flex items-start justify-end gap-2 ml-auto max-w-full min-w-0">
         <div className="flex flex-col max-w-[85%] min-w-0">
           <div
-            className={`bg-bolt-elements-prompt-background px-4 py-3 rounded-2xl rounded-tr-md shadow-sm overflow-hidden text-sm lg:text-base transition-all duration-200 ${
+            className={`bg-bolt-elements-prompt-background px-3.5 py-2.5 rounded-2xl rounded-tr-md shadow-sm overflow-hidden text-sm transition-all duration-200 ${
               isEditing ? 'border-2 border-dashed border-accent-500' : 'border border-bolt-elements-borderColor/60'
             }`}
           >
@@ -125,7 +125,7 @@ export function UserMessage({ content, parts, onDelete, onEdit, isEditing }: Use
           </div>
         )}
         <div
-          className={`bg-bolt-elements-prompt-background px-4 py-3 rounded-2xl rounded-tr-md shadow-sm overflow-hidden text-sm lg:text-base min-w-0 transition-all duration-200 ${
+          className={`bg-bolt-elements-prompt-background px-3.5 py-2.5 rounded-2xl rounded-tr-md shadow-sm overflow-hidden text-sm min-w-0 transition-all duration-200 ${
             isEditing ? 'border-2 border-dashed border-accent-500' : 'border border-bolt-elements-borderColor/60'
           }`}
         >

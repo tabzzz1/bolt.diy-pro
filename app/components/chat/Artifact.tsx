@@ -2,6 +2,19 @@ import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { computed } from 'nanostores';
 import { memo, useEffect, useRef, useState } from 'react';
+import type { IconType } from 'react-icons';
+import {
+  SiCss3,
+  SiHtml5,
+  SiJavascript,
+  SiJson,
+  SiMarkdown,
+  SiSass,
+  SiSqlite,
+  SiTypescript,
+  SiYaml,
+} from 'react-icons/si';
+import { FiCode, FiFile, FiImage, FiTerminal } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
 import type { ActionState } from '~/lib/runtime/action-runner';
@@ -85,10 +98,10 @@ export const Artifact = memo(({ artifactId }: ArtifactProps) => {
 
   return (
     <>
-      <div className="artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150">
+      <div className="artifact border border-bolt-elements-borderColor/80 bg-bolt-elements-background-depth-2 flex flex-col overflow-hidden rounded-xl w-full transition-border duration-150 shadow-sm">
         <div className="flex">
           <button
-            className="flex items-stretch bg-bolt-elements-artifacts-background hover:bg-bolt-elements-artifacts-backgroundHover w-full overflow-hidden"
+            className="flex items-stretch bg-bolt-elements-artifacts-background hover:bg-bolt-elements-artifacts-backgroundHover/80 w-full overflow-hidden transition-colors"
             onClick={() => {
               workbenchStore.showWorkbench.set(true);
               workbenchStore.currentView.set('code');
@@ -205,7 +218,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-      <ul className="list-none space-y-2.5">
+      <ul className="list-none space-y-3">
         {actions.map((action, index) => {
           const { status, type, content } = action;
           const isLast = index === actions.length - 1;
@@ -223,34 +236,53 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                 ease: cubicEasingFn,
               }}
             >
-              <div className="flex items-center gap-1.5 text-sm">
-                <div className={classNames('text-lg', getIconColor(displayStatus))}>
-                  {displayStatus === 'running' ? (
-                    <>
-                      {type !== 'start' ? (
-                        <div className="i-svg-spinners:90-ring-with-bg"></div>
-                      ) : (
-                        <div className="i-ph:terminal-window-duotone"></div>
-                      )}
-                    </>
-                  ) : displayStatus === 'pending' ? (
-                    <div className="i-ph:circle-duotone"></div>
-                  ) : displayStatus === 'complete' ? (
-                    <div className="i-ph:check"></div>
-                  ) : displayStatus === 'failed' || displayStatus === 'aborted' ? (
-                    <div className="i-ph:x"></div>
-                  ) : null}
-                </div>
-                {type === 'file' ? (
-                  <div>
-                    {t('artifact.createFile')}{' '}
-                    <code
-                      className="bg-bolt-elements-artifacts-inlineCode-background text-bolt-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-bolt-elements-item-contentAccent hover:underline cursor-pointer"
-                      onClick={() => openArtifactInWorkbench(action.filePath)}
-                    >
-                      {action.filePath}
-                    </code>
+              <div className="flex items-center gap-2 text-sm">
+                {type !== 'file' && (
+                  <div className={classNames('text-lg', getIconColor(displayStatus))}>
+                    {displayStatus === 'running' ? (
+                      <>
+                        {type !== 'start' ? (
+                          <div className="i-svg-spinners:90-ring-with-bg"></div>
+                        ) : (
+                          <div className="i-ph:terminal-window-duotone"></div>
+                        )}
+                      </>
+                    ) : displayStatus === 'pending' ? (
+                      <div className="i-ph:circle-duotone"></div>
+                    ) : displayStatus === 'complete' ? (
+                      <div className="i-ph:check"></div>
+                    ) : displayStatus === 'failed' || displayStatus === 'aborted' ? (
+                      <div className="i-ph:x"></div>
+                    ) : null}
                   </div>
+                )}
+                {type === 'file' ? (
+                  <button
+                    className={classNames(
+                      'w-full min-w-0 rounded-md px-2 py-1.5 bg-transparent border-none text-left cursor-pointer',
+                      'hover:bg-bolt-elements-background-depth-3 transition-colors',
+                      'flex items-center gap-2',
+                    )}
+                    onClick={() => openArtifactInWorkbench(action.filePath)}
+                    title={action.filePath}
+                  >
+                    <div className={classNames('shrink-0 text-[14px]', getIconColor(displayStatus))}>
+                      {displayStatus === 'running' ? (
+                        <div className="i-svg-spinners:90-ring-with-bg" />
+                      ) : displayStatus === 'complete' ? (
+                        <div className="i-ph:check-circle" />
+                      ) : displayStatus === 'failed' || displayStatus === 'aborted' ? (
+                        <div className="i-ph:x-circle" />
+                      ) : (
+                        <div className="i-ph:circle-duotone" />
+                      )}
+                    </div>
+                    <div className="shrink-0 text-bolt-elements-textSecondary">{renderFileTypeIcon(action.filePath)}</div>
+                    <div className="truncate text-sm text-bolt-elements-textPrimary font-medium max-w-[40%]">
+                      {getFileBaseName(action.filePath)}
+                    </div>
+                    <div className="truncate text-xs text-bolt-elements-textTertiary flex-1">{action.filePath}</div>
+                  </button>
                 ) : type === 'shell' ? (
                   <div className="flex items-center w-full min-h-[28px]">
                     <span className="flex-1">{t('artifact.runCommand')}</span>
@@ -304,4 +336,85 @@ function getIconColor(status: ActionState['status']) {
       return undefined;
     }
   }
+}
+
+function getFileBaseName(filePath: string) {
+  const segments = filePath.split('/');
+  return segments[segments.length - 1] || filePath;
+}
+
+function getFileTypeIcon(filePath: string) {
+  const fileName = getFileBaseName(filePath).toLowerCase();
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+
+  const fileNameIcons: Record<string, { icon: IconType; className: string }> = {
+    'package.json': { icon: SiJson, className: 'text-[#CB3837]' },
+    'package-lock.json': { icon: SiJson, className: 'text-[#CB3837]' },
+    'pnpm-lock.yaml': { icon: SiYaml, className: 'text-[#F69220]' },
+    'yarn.lock': { icon: SiYaml, className: 'text-[#2C8EBB]' },
+    'tsconfig.json': { icon: SiTypescript, className: 'text-[#3178C6]' },
+    'jsconfig.json': { icon: SiJavascript, className: 'text-[#F7DF1E]' },
+    '.eslintrc': { icon: FiCode, className: 'text-[#4B32C3]' },
+    '.prettierrc': { icon: FiCode, className: 'text-[#F7B93E]' },
+    '.gitignore': { icon: FiFile, className: 'text-bolt-elements-textSecondary' },
+    '.env': { icon: FiCode, className: 'text-[#10B981]' },
+    '.env.local': { icon: FiCode, className: 'text-[#10B981]' },
+    '.env.production': { icon: FiCode, className: 'text-[#10B981]' },
+    'dockerfile': { icon: FiCode, className: 'text-[#2496ED]' },
+    'docker-compose.yml': { icon: SiYaml, className: 'text-[#2496ED]' },
+    'docker-compose.yaml': { icon: SiYaml, className: 'text-[#2496ED]' },
+  };
+
+  if (fileNameIcons[fileName]) {
+    return fileNameIcons[fileName];
+  }
+
+  if (fileName.startsWith('vite.config.')) {
+    return { icon: FiCode, className: 'text-[#646CFF]' };
+  }
+
+  if (fileName.startsWith('tailwind.config.')) {
+    return { icon: SiCss3, className: 'text-[#06B6D4]' };
+  }
+
+  if (fileName.startsWith('postcss.config.')) {
+    return { icon: SiCss3, className: 'text-[#DD3A0A]' };
+  }
+
+  const extensionIcons: Record<string, { icon: IconType; className: string }> = {
+    ts: { icon: SiTypescript, className: 'text-[#3178C6]' },
+    tsx: { icon: SiTypescript, className: 'text-[#3178C6]' },
+    js: { icon: SiJavascript, className: 'text-[#F7DF1E]' },
+    jsx: { icon: SiJavascript, className: 'text-[#F7DF1E]' },
+    mjs: { icon: SiJavascript, className: 'text-[#F7DF1E]' },
+    cjs: { icon: SiJavascript, className: 'text-[#F7DF1E]' },
+    json: { icon: SiJson, className: 'text-[#F59E0B]' },
+    css: { icon: SiCss3, className: 'text-[#1572B6]' },
+    scss: { icon: SiSass, className: 'text-[#CC6699]' },
+    sass: { icon: SiSass, className: 'text-[#CC6699]' },
+    html: { icon: SiHtml5, className: 'text-[#E34F26]' },
+    md: { icon: SiMarkdown, className: 'text-bolt-elements-textSecondary' },
+    yml: { icon: SiYaml, className: 'text-[#CB171E]' },
+    yaml: { icon: SiYaml, className: 'text-[#CB171E]' },
+    sh: { icon: FiTerminal, className: 'text-bolt-elements-textSecondary' },
+    zsh: { icon: FiTerminal, className: 'text-bolt-elements-textSecondary' },
+    bash: { icon: FiTerminal, className: 'text-bolt-elements-textSecondary' },
+    env: { icon: FiCode, className: 'text-bolt-elements-textSecondary' },
+    sql: { icon: SiSqlite, className: 'text-[#0E7A9F]' },
+    png: { icon: FiImage, className: 'text-bolt-elements-textSecondary' },
+    jpg: { icon: FiImage, className: 'text-bolt-elements-textSecondary' },
+    jpeg: { icon: FiImage, className: 'text-bolt-elements-textSecondary' },
+    gif: { icon: FiImage, className: 'text-bolt-elements-textSecondary' },
+    webp: { icon: FiImage, className: 'text-bolt-elements-textSecondary' },
+    svg: { icon: FiImage, className: 'text-bolt-elements-textSecondary' },
+    toml: { icon: FiCode, className: 'text-bolt-elements-textSecondary' },
+    xml: { icon: FiCode, className: 'text-bolt-elements-textSecondary' },
+  };
+
+  return extensionIcons[extension] || { icon: FiFile, className: 'text-bolt-elements-textSecondary' };
+}
+
+function renderFileTypeIcon(filePath: string) {
+  const { icon: Icon, className } = getFileTypeIcon(filePath);
+  return <Icon className={classNames('text-[15px]', className)} />;
 }

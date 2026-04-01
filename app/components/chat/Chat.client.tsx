@@ -16,7 +16,7 @@ import Cookies from 'js-cookie';
 import { debounce } from '~/utils/debounce';
 import { useSettings } from '~/lib/hooks/useSettings';
 import type { ProviderInfo } from '~/types/model';
-import { useSearchParams } from '@remix-run/react';
+import { useLocation, useSearchParams } from '@remix-run/react';
 import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 import { logStore } from '~/lib/stores/logs';
@@ -84,6 +84,7 @@ interface ChatProps {
 export const ChatImpl = memo(
   ({ description, initialMessages, storeMessageHistory, importChat, exportChat }: ChatProps) => {
     useShortcuts();
+    const location = useLocation();
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
@@ -176,6 +177,20 @@ export const ChatImpl = memo(
       initialMessages,
       initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
     });
+
+    useEffect(() => {
+      const isHome = location.pathname === '/';
+
+      if (!isHome) {
+        return;
+      }
+
+      setChatStarted(initialMessages.length > 0);
+
+      if (initialMessages.length === 0) {
+        setData(undefined);
+      }
+    }, [location.pathname, initialMessages.length, setData]);
     useEffect(() => {
       const prompt = searchParams.get('prompt');
 

@@ -1,36 +1,50 @@
 import { useState, type PropsWithChildren } from 'react';
 
-const ThoughtBox = ({ title, children }: PropsWithChildren<{ title: string }>) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+interface ThoughtBoxProps {
+  title: string;
+  subtitle?: string;
+  defaultExpanded?: boolean;
+}
+
+const ThoughtBox = ({ title, subtitle, defaultExpanded = false, children }: PropsWithChildren<ThoughtBoxProps>) => {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
     <div
       onClick={() => setIsExpanded(!isExpanded)}
       className={`
-        bg-bolt-elements-background-depth-2
-        shadow-md 
-        rounded-lg 
+        bg-bolt-elements-background-depth-2/85
+        shadow-sm
+        rounded-xl
         cursor-pointer 
         transition-all 
-        duration-300
-        ${isExpanded ? 'max-h-96' : 'max-h-13'}
+        duration-200
+        border border-bolt-elements-borderColor/70
+        ${isExpanded ? 'max-h-[420px]' : 'max-h-12'}
         overflow-auto
-        border border-bolt-elements-borderColor
       `}
     >
-      <div className="p-4 flex items-center gap-4 rounded-lg  text-bolt-elements-textSecondary font-medium leading-5 text-sm  border border-bolt-elements-borderColor">
-        <div className="i-ph:brain-thin text-2xl" />
-        <div className="div">
-          <span> {title}</span>{' '}
-          {!isExpanded && <span className="text-bolt-elements-textTertiary"> - Click to expand</span>}
+      <div className="px-3 py-2 flex items-center gap-2 rounded-xl text-bolt-elements-textSecondary leading-5 text-sm">
+        <div className="w-6 h-6 rounded-lg bg-accent-500/12 text-accent-500 flex items-center justify-center">
+          <div className="i-ph:brain text-base" />
         </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-medium truncate">{title}</div>
+          {!isExpanded && subtitle ? (
+            <div className="text-xs text-bolt-elements-textTertiary truncate">{subtitle}</div>
+          ) : !isExpanded ? (
+            <div className="text-xs text-bolt-elements-textTertiary">Click to expand</div>
+          ) : null}
+        </div>
+        <div className={`${isExpanded ? 'i-ph:caret-up-bold' : 'i-ph:caret-down-bold'} text-xs opacity-80`} />
       </div>
       <div
         className={`
         transition-opacity 
-        duration-300
-        p-4 
-        rounded-lg 
+        duration-200
+        px-3 pb-3
+        text-sm
+        rounded-xl
         ${isExpanded ? 'opacity-100' : 'opacity-0'}
       `}
       >

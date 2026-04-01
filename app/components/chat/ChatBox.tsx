@@ -68,6 +68,9 @@ interface ChatBoxProps {
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const { t } = useTranslation('chat');
+  const isInputLocked = Boolean(props.isStreaming || props.enhancingPrompt);
+  const isToolbarLocked = Boolean(props.enhancingPrompt);
+
   return (
     <div
       className={classNames(
@@ -163,20 +166,39 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
             'transition-all duration-200',
             'hover:border-bolt-elements-focus',
+            {
+              'opacity-75 cursor-not-allowed': isInputLocked,
+            },
           )}
           onDragEnter={(e) => {
+            if (isInputLocked) {
+              return;
+            }
+
             e.preventDefault();
             e.currentTarget.style.border = '2px solid #1488fc';
           }}
           onDragOver={(e) => {
+            if (isInputLocked) {
+              return;
+            }
+
             e.preventDefault();
             e.currentTarget.style.border = '2px solid #1488fc';
           }}
           onDragLeave={(e) => {
+            if (isInputLocked) {
+              return;
+            }
+
             e.preventDefault();
             e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
           }}
           onDrop={(e) => {
+            if (isInputLocked) {
+              return;
+            }
+
             e.preventDefault();
             e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
 
@@ -219,12 +241,21 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           onChange={(event) => {
             props.handleInputChange?.(event);
           }}
-          onPaste={props.handlePaste}
+          onPaste={(event) => {
+            if (isInputLocked) {
+              event.preventDefault();
+              return;
+            }
+            props.handlePaste(event);
+          }}
           style={{
             minHeight: props.TEXTAREA_MIN_HEIGHT,
             maxHeight: props.TEXTAREA_MAX_HEIGHT,
           }}
-          placeholder={props.chatMode === 'build' ? t('textarea.placeholderBuild') : t('textarea.placeholderDiscuss')}
+          disabled={isInputLocked}
+          placeholder={
+            props.chatMode === 'build' ? t('textarea.placeholderBuild') : t('textarea.placeholderDiscuss')
+          }
           translate="no"
         />
         <ClientOnly>
@@ -232,7 +263,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             <SendButton
               show={props.input.length > 0 || props.isStreaming || props.uploadedFiles.length > 0}
               isStreaming={props.isStreaming}
-              disabled={!props.providerList || props.providerList.length === 0}
+              disabled={!props.providerList || props.providerList.length === 0 || (isToolbarLocked && !props.isStreaming)}
               onClick={(event) => {
                 if (props.isStreaming) {
                   props.handleStop?.();
@@ -247,20 +278,25 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           )}
         </ClientOnly>
         <div className="flex justify-between items-center text-sm p-4 pt-2">
-          <div className="flex gap-1 items-center">
+          <div
+            className={classNames('flex gap-1 items-center transition-opacity', {
+              'opacity-70': isToolbarLocked,
+            })}
+          >
             <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
             <McpTools />
             <IconButton
               title={t('toolbar.uploadFile')}
               className="transition-all"
+              disabled={isToolbarLocked}
               onClick={() => props.handleFileUpload()}
             >
               <div className="i-ph:paperclip text-xl"></div>
             </IconButton>
-            <WebSearch onSearchResult={(result) => props.onWebSearchResult?.(result)} disabled={props.isStreaming} />
+            <WebSearch onSearchResult={(result) => props.onWebSearchResult?.(result)} disabled={isToolbarLocked} />
             <IconButton
               title={t('toolbar.enhancePrompt')}
-              disabled={props.input.length === 0 || props.enhancingPrompt}
+              disabled={props.input.length === 0 || props.enhancingPrompt || isToolbarLocked}
               className={classNames('transition-all', props.enhancingPrompt ? 'opacity-100' : '')}
               onClick={() => {
                 props.enhancePrompt?.();
@@ -278,7 +314,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               isListening={props.isListening}
               onStart={props.startListening}
               onStop={props.stopListening}
-              disabled={props.isStreaming}
+              disabled={isToolbarLocked}
             />
             {props.chatStarted && (
               <IconButton
@@ -292,6 +328,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 onClick={() => {
                   props.setChatMode?.(props.chatMode === 'discuss' ? 'build' : 'discuss');
                 }}
+                disabled={isToolbarLocked}
               >
                 <div className={`i-ph:chats text-xl`} />
                 {props.chatMode === 'discuss' ? <span>{t('toolbar.discuss')}</span> : <span />}
@@ -306,13 +343,13 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   !props.isModelSettingsCollapsed,
               })}
               onClick={() => props.setIsModelSettingsCollapsed(!props.isModelSettingsCollapsed)}
-              disabled={!props.providerList || props.providerList.length === 0}
+              disabled={!props.providerList || props.providerList.length === 0 || isToolbarLocked}
             >
               <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
               {props.isModelSettingsCollapsed ? <span className="text-xs">{props.model}</span> : <span />}
             </IconButton>
           </div>
-          {props.input.length > 3 ? (
+          {props.input.length > 3 && !isInputLocked ? (
             <div className="text-xs text-bolt-elements-textTertiary">
               {t('textarea.newLineHintPrefix')}{' '}
               <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Shift</kbd> +{' '}

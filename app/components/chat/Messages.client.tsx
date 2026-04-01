@@ -142,16 +142,16 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                   <div
                     key={index}
                     className={classNames('flex w-full min-w-0', {
-                      'mt-2': !isFirst && isUserMessage,
-                      'mt-1': !isFirst && !isUserMessage,
+                      'mt-1.5': !isFirst && isUserMessage,
+                      'mt-0.5': !isFirst && !isUserMessage,
                       'justify-end': isUserMessage,
                       'justify-start': !isUserMessage,
                     })}
                   >
                     <div
                       className={classNames('w-full min-w-0', {
-                        'py-2': isUserMessage,
-                        'py-3 px-1': !isUserMessage,
+                        'py-1.5': isUserMessage,
+                        'py-2 px-1': !isUserMessage,
                       })}
                     >
                       {isUserMessage ? (

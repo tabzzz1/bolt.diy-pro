@@ -8,11 +8,12 @@ $code-font-size: 13px;
 }
 
 .MarkdownContent {
-  line-height: 1.6;
+  line-height: 1.5;
+  font-size: 0.94rem;
   color: var(--bolt-elements-textPrimary);
 
   > *:not(:last-child) {
-    margin-block-end: 16px;
+    margin-block-end: 12px;
   }
 
   :global(.artifact) {
@@ -22,7 +23,7 @@ $code-font-size: 13px;
   :is(h1, h2, h3, h4, h5, h6) {
     @include not-inside-actions {
       margin-block-start: 24px;
-      margin-block-end: 16px;
+      margin-block-end: 12px;
       font-weight: 600;
       line-height: 1.25;
       color: var(--bolt-elements-textPrimary);
@@ -63,7 +64,7 @@ $code-font-size: 13px;
 
     &:not(:last-of-type) {
       margin-block-start: 0;
-      margin-block-end: 16px;
+      margin-block-end: 12px;
     }
   }
 
@@ -113,7 +114,7 @@ $code-font-size: 13px;
     @include not-inside-actions {
       padding-left: 2em;
       margin-block-start: 0;
-      margin-block-end: 16px;
+      margin-block-end: 12px;
     }
   }
 
@@ -132,11 +133,11 @@ $code-font-size: 13px;
   li {
     @include not-inside-actions {
       & + li {
-        margin-block-start: 8px;
+        margin-block-start: 6px;
       }
 
       > *:not(:last-child) {
-        margin-block-end: 16px;
+        margin-block-end: 10px;
       }
     }
   }

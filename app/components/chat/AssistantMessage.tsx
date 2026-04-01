@@ -1,4 +1,4 @@
-import { memo, Fragment, useMemo } from 'react';
+import { memo, Fragment, useEffect, useMemo, useState } from 'react';
 import { Markdown } from './Markdown';
 import type { JSONValue } from 'ai';
 import Popover from '~/components/ui/Popover';
@@ -79,6 +79,7 @@ export const AssistantMessage = memo(
     isStreaming,
   }: AssistantMessageProps) => {
     const { t } = useTranslation('chat');
+    const [totalDurationSeconds, setTotalDurationSeconds] = useState<number | null>(null);
 
     const filteredAnnotations = (annotations?.filter(
       (annotation: JSONValue) =>
@@ -174,14 +175,34 @@ export const AssistantMessage = memo(
       return segments;
     }, [parts, content]);
 
-    return (
+    useEffect(() => {
+      if (!isStreaming) {
+        return undefined;
+      }
+
+      setTotalDurationSeconds(null);
+
+      const startAt = Date.now();
+
+      const timer = window.setInterval(() => {
+        // Keep the event loop active for smoother end timing.
+      }, 500);
+
+      return () => {
+        window.clearInterval(timer);
+        const seconds = Math.max(1, Math.round((Date.now() - startAt) / 1000));
+        setTotalDurationSeconds(seconds);
+      };
+    }, [isStreaming]);
+
+  return (
       <div className="group overflow-hidden w-full">
         {/* Assistant header row */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-2">
             {/* AI icon */}
-            <div className="w-6 h-6 rounded-full bg-accent-500/15 flex items-center justify-center flex-shrink-0">
-              <div className="i-ph:robot text-accent-500 text-xs" />
+            <div className="w-5.5 h-5.5 rounded-full bg-accent-500/15 flex items-center justify-center flex-shrink-0">
+              <div className="i-ph:robot text-accent-500 text-[11px]" />
             </div>
             <span className="text-xs font-medium text-bolt-elements-textSecondary">{t('assistantLabel')}</span>
 
@@ -245,7 +266,7 @@ export const AssistantMessage = memo(
         </div>
 
         {/* Message content — rendered in part order so tool cards stay in place */}
-        <div className="pl-8">
+        <div className="pl-[30px]">
           {groupedSegments.map((segment, index) => {
             if (segment.type === 'text') {
               return (
@@ -276,6 +297,12 @@ export const AssistantMessage = memo(
 
             return null;
           })}
+
+          {!isStreaming && totalDurationSeconds !== null && (
+            <div className="mt-2 text-[11px] text-bolt-elements-textTertiary">
+              {t('process.totalDuration', { seconds: totalDurationSeconds })}
+            </div>
+          )}
 
           {/* Bottom-left action bar — visible after streaming ends */}
           <AssistantMessageActions

@@ -24,8 +24,6 @@ import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from 
 import DeployChatAlert from '~/components/deploy/DeployAlert';
 import ChatAlert from './ChatAlert';
 import type { ModelInfo } from '~/lib/modules/llm/types';
-import ProgressCompilation from './ProgressCompilation';
-import type { ProgressAnnotation } from '~/types/context';
 import { SupabaseChatAlert } from '~/components/chat/integrations/supabase/SupabaseAlert';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
@@ -137,7 +135,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       clearSupabaseAlert,
       llmErrorAlert,
       clearLlmErrorAlert,
-      data,
+      data: _data,
       chatMode,
       setChatMode,
       append,
@@ -163,7 +161,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
     const [transcript, setTranscript] = useState('');
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
-    const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
     const expoUrl = useStore(expoUrlAtom);
     const showWorkbench = useStore(workbenchStore.showWorkbench);
     const [qrModalOpen, setQrModalOpen] = useState(false);
@@ -427,14 +424,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, [expoUrl]);
 
-    useEffect(() => {
-      if (data) {
-        const progressList = data.filter(
-          (x) => typeof x === 'object' && (x as any).type === 'progress',
-        ) as ProgressAnnotation[];
-        setProgressAnnotations(progressList);
-      }
-    }, [data]);
     useEffect(() => {
       console.log(transcript);
     }, [transcript]);
@@ -744,7 +733,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   )}
                   {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
                 </div>
-                {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
                 <ChatBox
                   isModelSettingsCollapsed={isModelSettingsCollapsed}
                   setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
@@ -816,7 +804,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </div>
           {/* Workbench panel — divider lives inside here so it always hugs the content left edge */}
           <div
-            className={classNames('relative h-full overflow-hidden transition-all duration-300 ease-in-out', {
+            className={classNames('relative h-full overflow-hidden transition-[padding,width,opacity] duration-300 ease-in-out', {
               // 左侧 paddding: 收起时留 12px(pl-3) 间距 + 6px 分割线位 = 18px；
               // 未收起时只留 6px 给分割线，视觉上与原来一致
               'flex-1 py-3 pr-3': chatStarted && showWorkbench,
@@ -853,18 +841,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 />
               </div>
             )}
-            <ClientOnly>
-              {() => (
-                <Workbench
-                  chatStarted={chatStarted}
-                  isStreaming={isStreaming}
-                  showWorkbench={showWorkbench}
-                  isChatCollapsed={isChatCollapsed}
-                  onToggleChatCollapsed={handleToggleChatCollapsed}
-                  setSelectedElement={setSelectedElement}
-                />
+            <div
+              className={classNames(
+                'h-full w-full origin-right will-change-[transform,opacity,clip-path]',
+                'transition-[transform,opacity,clip-path] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                showWorkbench
+                  ? 'opacity-100 translate-x-0 [clip-path:inset(0_0_0_0)]'
+                  : 'opacity-0 translate-x-2 [clip-path:inset(0_0_0_100%)]',
               )}
-            </ClientOnly>
+            >
+              <ClientOnly>
+                {() => (
+                  <Workbench
+                    chatStarted={chatStarted}
+                    isStreaming={isStreaming}
+                    showWorkbench={showWorkbench}
+                    isChatCollapsed={isChatCollapsed}
+                    onToggleChatCollapsed={handleToggleChatCollapsed}
+                    setSelectedElement={setSelectedElement}
+                  />
+                )}
+              </ClientOnly>
+            </div>
           </div>
         </div>
       </div>
