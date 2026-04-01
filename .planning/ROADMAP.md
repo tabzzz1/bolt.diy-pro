@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-governance-safe-rollout-01-PLAN.md — 双层开关治理主干、统一拒绝语义与主链路回归
 - [x] 01-governance-safe-rollout-02-PLAN.md — growth 域导出/删除边界与最小匿名审计闭环
-- [ ] 01-governance-safe-rollout-03-PLAN.md — 修复 FeaturesTab 的 LifeBegins 五开关可见性回归
+- [x] 01-governance-safe-rollout-03-PLAN.md — 修复 FeaturesTab 的 LifeBegins 五开关可见性回归
 
 ### Phase 2: Intent Anchor Experience
 **Goal**: 用户在会话开始与执行过程中始终有清晰目标、边界与可追溯变更  
@@ -101,7 +101,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Governance & Safe Rollout | 2/2 | Complete   | 2026-04-01 |
+| 1. Governance & Safe Rollout | 3/3 | Complete   | 2026-04-01 |
 | 2. Intent Anchor Experience | 0/0 | Not started | - |
 | 3. Fork Futures Decisions | 0/0 | Not started | - |
 | 4. Failure Museum MVP | 0/0 | Not started | - |
