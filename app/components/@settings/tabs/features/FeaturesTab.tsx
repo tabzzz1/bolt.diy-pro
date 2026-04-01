@@ -125,7 +125,30 @@ export default function FeaturesTab() {
     setEventLogs,
     setPromptId,
     promptId,
+    lifebeginsAnchorEnabled,
+    lifebeginsForkEnabled,
+    lifebeginsFailureEnabled,
+    lifebeginsTimelineEnabled,
+    lifebeginsDnaEnabled,
+    setLifeBeginsAnchorEnabled,
+    setLifeBeginsForkEnabled,
+    setLifeBeginsFailureEnabled,
+    setLifeBeginsTimelineEnabled,
+    setLifeBeginsDnaEnabled,
   } = useSettings();
+
+  const handleFeatureDisabledError = useCallback((error: unknown) => {
+    if (typeof error !== 'object' || error === null) {
+      return false;
+    }
+
+    if ((error as { error?: string }).error === 'feature_disabled') {
+      toast.info('This feature is temporarily disabled.');
+      return true;
+    }
+
+    return false;
+  }, []);
 
   // Enable features by default on first load
   React.useEffect(() => {
@@ -153,36 +176,84 @@ export default function FeaturesTab() {
 
   const handleToggleFeature = useCallback(
     (id: string, enabled: boolean) => {
-      switch (id) {
-        case 'latestBranch': {
-          enableLatestBranch(enabled);
-          toast.success(enabled ? t('mainBranchEnabled') : t('mainBranchDisabled'));
-          break;
-        }
+      try {
+        switch (id) {
+          case 'latestBranch': {
+            enableLatestBranch(enabled);
+            toast.success(enabled ? t('mainBranchEnabled') : t('mainBranchDisabled'));
+            break;
+          }
 
-        case 'autoSelectTemplate': {
-          setAutoSelectTemplate(enabled);
-          toast.success(enabled ? t('autoSelectEnabled') : t('autoSelectDisabled'));
-          break;
-        }
+          case 'autoSelectTemplate': {
+            setAutoSelectTemplate(enabled);
+            toast.success(enabled ? t('autoSelectEnabled') : t('autoSelectDisabled'));
+            break;
+          }
 
-        case 'contextOptimization': {
-          enableContextOptimization(enabled);
-          toast.success(enabled ? t('contextOptimizationEnabled') : t('contextOptimizationDisabled'));
-          break;
-        }
+          case 'contextOptimization': {
+            enableContextOptimization(enabled);
+            toast.success(enabled ? t('contextOptimizationEnabled') : t('contextOptimizationDisabled'));
+            break;
+          }
 
-        case 'eventLogs': {
-          setEventLogs(enabled);
-          toast.success(enabled ? t('eventLoggingEnabled') : t('eventLoggingDisabled'));
-          break;
-        }
+          case 'eventLogs': {
+            setEventLogs(enabled);
+            toast.success(enabled ? t('eventLoggingEnabled') : t('eventLoggingDisabled'));
+            break;
+          }
 
-        default:
-          break;
+          case 'lifebegins.anchor': {
+            setLifeBeginsAnchorEnabled(enabled);
+            toast.success(enabled ? 'lifebegins.anchor enabled' : 'lifebegins.anchor disabled');
+            break;
+          }
+
+          case 'lifebegins.fork': {
+            setLifeBeginsForkEnabled(enabled);
+            toast.success(enabled ? 'lifebegins.fork enabled' : 'lifebegins.fork disabled');
+            break;
+          }
+
+          case 'lifebegins.failure': {
+            setLifeBeginsFailureEnabled(enabled);
+            toast.success(enabled ? 'lifebegins.failure enabled' : 'lifebegins.failure disabled');
+            break;
+          }
+
+          case 'lifebegins.timeline': {
+            setLifeBeginsTimelineEnabled(enabled);
+            toast.success(enabled ? 'lifebegins.timeline enabled' : 'lifebegins.timeline disabled');
+            break;
+          }
+
+          case 'lifebegins.dna': {
+            setLifeBeginsDnaEnabled(enabled);
+            toast.success(enabled ? 'lifebegins.dna enabled' : 'lifebegins.dna disabled');
+            break;
+          }
+
+          default:
+            break;
+        }
+      } catch (error) {
+        if (!handleFeatureDisabledError(error)) {
+          toast.error(t('errorSavingSettings'));
+        }
       }
     },
-    [enableLatestBranch, setAutoSelectTemplate, enableContextOptimization, setEventLogs, t],
+    [
+      enableLatestBranch,
+      setAutoSelectTemplate,
+      enableContextOptimization,
+      setEventLogs,
+      setLifeBeginsAnchorEnabled,
+      setLifeBeginsForkEnabled,
+      setLifeBeginsFailureEnabled,
+      setLifeBeginsTimelineEnabled,
+      setLifeBeginsDnaEnabled,
+      handleFeatureDisabledError,
+      t,
+    ],
   );
 
   const features = {
@@ -220,6 +291,43 @@ export default function FeaturesTab() {
         tooltip: t('eventLoggingTooltip'),
       },
     ],
+    lifebegins: [
+      {
+        id: 'lifebegins.anchor',
+        title: 'Intent Anchor',
+        description: 'lifebegins.anchor',
+        icon: 'i-ph:target',
+        enabled: lifebeginsAnchorEnabled,
+      },
+      {
+        id: 'lifebegins.fork',
+        title: 'Fork Futures',
+        description: 'lifebegins.fork',
+        icon: 'i-ph:git-fork',
+        enabled: lifebeginsForkEnabled,
+      },
+      {
+        id: 'lifebegins.failure',
+        title: 'Failure Museum',
+        description: 'lifebegins.failure',
+        icon: 'i-ph:warning-circle',
+        enabled: lifebeginsFailureEnabled,
+      },
+      {
+        id: 'lifebegins.timeline',
+        title: 'Life Timeline',
+        description: 'lifebegins.timeline',
+        icon: 'i-ph:timeline',
+        enabled: lifebeginsTimelineEnabled,
+      },
+      {
+        id: 'lifebegins.dna',
+        title: 'Builder DNA',
+        description: 'lifebegins.dna',
+        icon: 'i-ph:dna',
+        enabled: lifebeginsDnaEnabled,
+      },
+    ].filter((feature) => feature.enabled),
     beta: [],
   };
 
@@ -244,6 +352,15 @@ export default function FeaturesTab() {
           t={t as any}
         />
       )}
+
+      <FeatureSection
+        title="LifeBegins"
+        features={features.lifebegins}
+        icon="i-ph:rocket-launch"
+        description="Growth domains controlled by governance flags."
+        onToggleFeature={handleToggleFeature}
+        t={t as any}
+      />
 
       <motion.div
         layout

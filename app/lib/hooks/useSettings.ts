@@ -15,6 +15,16 @@ import {
   updateContextOptimization,
   updateEventLogs,
   updatePromptId,
+  lifebeginsAnchorStore,
+  lifebeginsForkStore,
+  lifebeginsFailureStore,
+  lifebeginsTimelineStore,
+  lifebeginsDnaStore,
+  updateLifeBeginsAnchor,
+  updateLifeBeginsFork,
+  updateLifeBeginsFailure,
+  updateLifeBeginsTimeline,
+  updateLifeBeginsDna,
 } from '~/lib/stores/settings';
 import { useCallback, useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
@@ -58,6 +68,16 @@ export interface UseSettingsReturn {
   setAutoSelectTemplate: (enabled: boolean) => void;
   contextOptimizationEnabled: boolean;
   enableContextOptimization: (enabled: boolean) => void;
+  lifebeginsAnchorEnabled: boolean;
+  lifebeginsForkEnabled: boolean;
+  lifebeginsFailureEnabled: boolean;
+  lifebeginsTimelineEnabled: boolean;
+  lifebeginsDnaEnabled: boolean;
+  setLifeBeginsAnchorEnabled: (enabled: boolean) => void;
+  setLifeBeginsForkEnabled: (enabled: boolean) => void;
+  setLifeBeginsFailureEnabled: (enabled: boolean) => void;
+  setLifeBeginsTimelineEnabled: (enabled: boolean) => void;
+  setLifeBeginsDnaEnabled: (enabled: boolean) => void;
 
   // Tab configuration
   tabConfiguration: TabWindowConfig;
@@ -78,6 +98,11 @@ export function useSettings(): UseSettingsReturn {
   const autoSelectTemplate = useStore(autoSelectStarterTemplate);
   const [activeProviders, setActiveProviders] = useState<ProviderInfo[]>([]);
   const contextOptimizationEnabled = useStore(enableContextOptimizationStore);
+  const lifebeginsAnchorEnabled = useStore(lifebeginsAnchorStore);
+  const lifebeginsForkEnabled = useStore(lifebeginsForkStore);
+  const lifebeginsFailureEnabled = useStore(lifebeginsFailureStore);
+  const lifebeginsTimelineEnabled = useStore(lifebeginsTimelineStore);
+  const lifebeginsDnaEnabled = useStore(lifebeginsDnaStore);
   const tabConfiguration = useStore(tabConfigurationStore);
   const [settings, setSettings] = useState<Settings>(() => {
     const storedSettings = getLocalStorage('settings');
@@ -143,6 +168,31 @@ export function useSettings(): UseSettingsReturn {
     logStore.logSystem(`Context optimization ${enabled ? 'enabled' : 'disabled'}`);
   }, []);
 
+  const setLifeBeginsAnchorEnabled = useCallback((enabled: boolean) => {
+    updateLifeBeginsAnchor(enabled);
+    logStore.logSystem(`lifebegins.anchor ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
+  const setLifeBeginsForkEnabled = useCallback((enabled: boolean) => {
+    updateLifeBeginsFork(enabled);
+    logStore.logSystem(`lifebegins.fork ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
+  const setLifeBeginsFailureEnabled = useCallback((enabled: boolean) => {
+    updateLifeBeginsFailure(enabled);
+    logStore.logSystem(`lifebegins.failure ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
+  const setLifeBeginsTimelineEnabled = useCallback((enabled: boolean) => {
+    updateLifeBeginsTimeline(enabled);
+    logStore.logSystem(`lifebegins.timeline ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
+  const setLifeBeginsDnaEnabled = useCallback((enabled: boolean) => {
+    updateLifeBeginsDna(enabled);
+    logStore.logSystem(`lifebegins.dna ${enabled ? 'enabled' : 'disabled'}`);
+  }, []);
+
   const setTheme = useCallback(
     (theme: Settings['theme']) => {
       saveSettings({ theme });
@@ -197,6 +247,16 @@ export function useSettings(): UseSettingsReturn {
     setAutoSelectTemplate,
     contextOptimizationEnabled,
     enableContextOptimization,
+    lifebeginsAnchorEnabled,
+    lifebeginsForkEnabled,
+    lifebeginsFailureEnabled,
+    lifebeginsTimelineEnabled,
+    lifebeginsDnaEnabled,
+    setLifeBeginsAnchorEnabled,
+    setLifeBeginsForkEnabled,
+    setLifeBeginsFailureEnabled,
+    setLifeBeginsTimelineEnabled,
+    setLifeBeginsDnaEnabled,
     setTheme,
     setLanguage,
     setNotifications,

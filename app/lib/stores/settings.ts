@@ -255,6 +255,11 @@ const SETTINGS_KEYS = {
   EVENT_LOGS: 'isEventLogsEnabled',
   PROMPT_ID: 'promptId',
   DEVELOPER_MODE: 'isDeveloperMode',
+  LIFEBEGINS_ANCHOR: 'lifebegins.anchor',
+  LIFEBEGINS_FORK: 'lifebegins.fork',
+  LIFEBEGINS_FAILURE: 'lifebegins.failure',
+  LIFEBEGINS_TIMELINE: 'lifebegins.timeline',
+  LIFEBEGINS_DNA: 'lifebegins.dna',
 } as const;
 
 // Initialize settings from localStorage or defaults
@@ -284,6 +289,11 @@ const getInitialSettings = () => {
     eventLogs: getStoredBoolean(SETTINGS_KEYS.EVENT_LOGS, true),
     promptId: isBrowser ? localStorage.getItem(SETTINGS_KEYS.PROMPT_ID) || 'default' : 'default',
     developerMode: getStoredBoolean(SETTINGS_KEYS.DEVELOPER_MODE, false),
+    lifebeginsAnchor: getStoredBoolean(SETTINGS_KEYS.LIFEBEGINS_ANCHOR, false),
+    lifebeginsFork: getStoredBoolean(SETTINGS_KEYS.LIFEBEGINS_FORK, false),
+    lifebeginsFailure: getStoredBoolean(SETTINGS_KEYS.LIFEBEGINS_FAILURE, false),
+    lifebeginsTimeline: getStoredBoolean(SETTINGS_KEYS.LIFEBEGINS_TIMELINE, false),
+    lifebeginsDna: getStoredBoolean(SETTINGS_KEYS.LIFEBEGINS_DNA, false),
   };
 };
 
@@ -295,6 +305,11 @@ export const autoSelectStarterTemplate = atom<boolean>(initialSettings.autoSelec
 export const enableContextOptimizationStore = atom<boolean>(initialSettings.contextOptimization);
 export const isEventLogsEnabled = atom<boolean>(initialSettings.eventLogs);
 export const promptStore = atom<string>(initialSettings.promptId);
+export const lifebeginsAnchorStore = atom<boolean>(initialSettings.lifebeginsAnchor);
+export const lifebeginsForkStore = atom<boolean>(initialSettings.lifebeginsFork);
+export const lifebeginsFailureStore = atom<boolean>(initialSettings.lifebeginsFailure);
+export const lifebeginsTimelineStore = atom<boolean>(initialSettings.lifebeginsTimeline);
+export const lifebeginsDnaStore = atom<boolean>(initialSettings.lifebeginsDna);
 
 // Helper functions to update settings with persistence
 export const updateLatestBranch = (enabled: boolean) => {
@@ -320,6 +335,31 @@ export const updateEventLogs = (enabled: boolean) => {
 export const updatePromptId = (id: string) => {
   promptStore.set(id);
   localStorage.setItem(SETTINGS_KEYS.PROMPT_ID, id);
+};
+
+export const updateLifeBeginsAnchor = (enabled: boolean) => {
+  lifebeginsAnchorStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.LIFEBEGINS_ANCHOR, JSON.stringify(enabled));
+};
+
+export const updateLifeBeginsFork = (enabled: boolean) => {
+  lifebeginsForkStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.LIFEBEGINS_FORK, JSON.stringify(enabled));
+};
+
+export const updateLifeBeginsFailure = (enabled: boolean) => {
+  lifebeginsFailureStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.LIFEBEGINS_FAILURE, JSON.stringify(enabled));
+};
+
+export const updateLifeBeginsTimeline = (enabled: boolean) => {
+  lifebeginsTimelineStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.LIFEBEGINS_TIMELINE, JSON.stringify(enabled));
+};
+
+export const updateLifeBeginsDna = (enabled: boolean) => {
+  lifebeginsDnaStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.LIFEBEGINS_DNA, JSON.stringify(enabled));
 };
 
 // Initialize tab configuration from localStorage or defaults
