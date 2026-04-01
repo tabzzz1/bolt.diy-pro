@@ -1,6 +1,5 @@
 import React from 'react';
 import { cleanup, fireEvent, render, within } from '@testing-library/react';
-import { JSDOM } from 'jsdom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loader as githubUserLoader } from '~/routes/api.github-user';
 import { assertGrowthFeatureEnabled } from '~/lib/governance/featureFlags.server';
@@ -35,7 +34,8 @@ vi.mock('react-toastify', () => ({
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: Record<string, unknown>) => React.createElement('div', props, children),
+    div: ({ children, ...props }: { children?: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) =>
+      React.createElement('div', props, children),
   },
 }));
 
@@ -69,20 +69,6 @@ function createSettings(overrides: LifeBeginsFlagOverrides = {}) {
     setLifeBeginsFailureEnabled: vi.fn(),
     setLifeBeginsTimelineEnabled: vi.fn(),
     setLifeBeginsDnaEnabled: vi.fn(),
-  };
-}
-
-function mountDom() {
-  const dom = new JSDOM('<!doctype html><html><body></body></html>');
-  (globalThis as any).window = dom.window;
-  (globalThis as any).document = dom.window.document;
-  (globalThis as any).navigator = dom.window.navigator;
-  (globalThis as any).HTMLElement = dom.window.HTMLElement;
-  (globalThis as any).Node = dom.window.Node;
-  (globalThis as any).getComputedStyle = dom.window.getComputedStyle.bind(dom.window);
-
-  return () => {
-    dom.window.close();
   };
 }
 
@@ -124,10 +110,7 @@ describe('governance mainflow safety', () => {
 });
 
 describe('governance features tab visibility', () => {
-  let unmountDom: (() => void) | null = null;
-
   beforeEach(() => {
-    unmountDom = mountDom();
     mocked.useSettingsMock.mockReset();
     mocked.toastSuccess.mockReset();
     mocked.toastInfo.mockReset();
@@ -136,8 +119,6 @@ describe('governance features tab visibility', () => {
 
   afterEach(() => {
     cleanup();
-    unmountDom?.();
-    unmountDom = null;
   });
 
   it('renders five lifebegins switch cards even when all lifebegins flags are false', () => {
