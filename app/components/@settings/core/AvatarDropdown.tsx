@@ -29,7 +29,9 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
   const supabase = useStore(supabaseConnection);
   const { t } = useTranslation('settings');
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const hasPlatformConnection = Boolean(github?.user || gitlab?.user || vercel?.user || netlify?.user || supabase?.user);
+  const hasPlatformConnection = Boolean(
+    github?.user || gitlab?.user || vercel?.user || netlify?.user || supabase?.user,
+  );
 
   const handleSignOut = async () => {
     await signOut();
@@ -98,7 +100,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
                     (auth.isAuthenticated
                       ? auth.user?.email
                       : hasPlatformConnection
-                        ? t('connectedUser', '已连接平台账号')
+                        ? t('connectedUser')
                         : t('guestUser'))}
                 </div>
                 {profile?.bio && <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{profile.bio}</div>}
@@ -119,7 +121,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
                 )}
               >
                 <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
-                {t('authChecking', '正在检查登录状态...')}
+                {t('authChecking')}
               </DropdownMenu.Item>
             )}
 
@@ -135,7 +137,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
                 )}
               >
                 <div className="i-ph:warning-circle w-4 h-4" />
-                {t('authNotConfigured', '未配置账号登录（需配置 Supabase Auth）')}
+                {t('authNotConfigured')}
               </DropdownMenu.Item>
             )}
 
@@ -151,7 +153,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
                 )}
               >
                 <div className="i-ph:info w-4 h-4" />
-                {t('platformConnectedButNotSignedIn', '已连接平台，但未登录应用账号')}
+                {t('platformConnectedButNotSignedIn')}
               </DropdownMenu.Item>
             )}
 
@@ -169,7 +171,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
                 onClick={() => setShowAuthDialog(true)}
               >
                 <div className="i-ph:sign-in w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
-                {t('signIn', '账号登录 / 注册')}
+                {t('signIn')}
               </DropdownMenu.Item>
             )}
 
@@ -282,7 +284,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
                   onClick={handleSignOut}
                 >
                   <div className="i-ph:sign-out w-4 h-4" />
-                  {t('signOut', '退出登录')}
+                  {t('signOut')}
                 </DropdownMenu.Item>
               </>
             )}

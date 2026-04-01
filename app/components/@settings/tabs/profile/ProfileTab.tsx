@@ -35,9 +35,9 @@ export default function ProfileTab() {
     try {
       setIsResendingVerification(true);
       await resendVerificationEmail();
-      toast.success('验证邮件已重新发送');
+      toast.success(t('profileTab.verificationEmailResent'));
     } catch (error: any) {
-      toast.error(error.message || '发送验证邮件失败');
+      toast.error(error.message || t('profileTab.verificationEmailResendFailed'));
     } finally {
       setIsResendingVerification(false);
     }
@@ -143,7 +143,7 @@ export default function ProfileTab() {
           >
             <div className="i-ph:warning-circle w-5 h-5 text-amber-500" />
             <div className="flex-1 min-w-0">
-              <span className="text-sm text-amber-700 dark:text-amber-300">邮箱尚未验证，部分功能可能受限</span>
+              <span className="text-sm text-amber-700 dark:text-amber-300">{t('profileTab.emailNotVerifiedHint')}</span>
             </div>
             <button
               onClick={handleResendVerification}
@@ -156,7 +156,7 @@ export default function ProfileTab() {
                 'disabled:opacity-50 disabled:cursor-not-allowed',
               )}
             >
-              {isResendingVerification ? '发送中...' : '重发验证邮件'}
+              {isResendingVerification ? t('profileTab.resendingVerification') : t('profileTab.resendVerification')}
             </button>
           </div>
         )}

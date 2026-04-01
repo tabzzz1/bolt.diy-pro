@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as RadixDialog from '@radix-ui/react-dialog';
+import { useTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 import {
   signInWithEmail,
@@ -18,6 +19,7 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogProps) {
+  const { t } = useTranslation('settings');
   const [mode, setMode] = useState<'login' | 'register' | 'reset' | 'reset-code'>(initialMode);
   const [email, setEmail] = useState('');
   const [recoveryCode, setRecoveryCode] = useState('');
@@ -34,9 +36,11 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
   const shouldShowPasswordStrength = mode === 'register' || mode === 'reset-code';
 
   const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-  const getPasswordStrength = (value: string): { level: 'weak' | 'medium' | 'strong'; score: number; label: string } => {
+  const getPasswordStrength = (
+    value: string,
+  ): { level: 'weak' | 'medium' | 'strong'; score: number; label: string } => {
     if (!value) {
-      return { level: 'weak', score: 0, label: '未输入' };
+      return { level: 'weak', score: 0, label: t('authDialog.passwordStrength.empty') };
     }
 
     let score = 0;
@@ -57,26 +61,40 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
     }
 
     if (score >= 4) {
-      return { level: 'strong', score, label: '强' };
+      return { level: 'strong', score, label: t('authDialog.passwordStrength.strong') };
     }
     if (score >= 2) {
-      return { level: 'medium', score, label: '中' };
+      return { level: 'medium', score, label: t('authDialog.passwordStrength.medium') };
     }
-    return { level: 'weak', score, label: '弱' };
+    return { level: 'weak', score, label: t('authDialog.passwordStrength.weak') };
   };
 
   const passwordStrength = getPasswordStrength(password);
   const getEmailError = () =>
-    !email.trim() ? '请输入邮箱' : !isValidEmail(email) ? '请输入合法的邮箱地址' : '';
-  const getRecoveryCodeError = () => (!recoveryCode.trim() ? '请输入验证码' : recoveryCode.trim().length < 4 ? '验证码格式不正确' : '');
-  const getPasswordError = () => (!password ? '请输入密码' : password.length < 6 ? '密码至少 6 位' : '');
+    !email.trim()
+      ? t('authDialog.errors.emailRequired')
+      : !isValidEmail(email)
+        ? t('authDialog.errors.emailInvalid')
+        : '';
+  const getRecoveryCodeError = () =>
+    !recoveryCode.trim()
+      ? t('authDialog.errors.recoveryCodeRequired')
+      : recoveryCode.trim().length < 4
+        ? t('authDialog.errors.recoveryCodeInvalid')
+        : '';
+  const getPasswordError = () =>
+    !password
+      ? t('authDialog.errors.passwordRequired')
+      : password.length < 6
+        ? t('authDialog.errors.passwordTooShort')
+        : '';
   const getConfirmPasswordError = () =>
     !confirmPassword
-      ? '请再次输入新密码'
+      ? t('authDialog.errors.confirmPasswordRequired')
       : confirmPassword.length < 6
-        ? '密码至少 6 位'
+        ? t('authDialog.errors.passwordTooShort')
         : confirmPassword !== password
-          ? '两次输入的新密码不一致'
+          ? t('authDialog.errors.passwordsDoNotMatch')
           : '';
 
   const emailError = shouldShowEmail && showValidation ? getEmailError() : '';
@@ -134,7 +152,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
     );
 
     if (hasErrors) {
-      toast.error('请先修正表单错误');
+      toast.error(t('authDialog.toast.fixFormErrors'));
       return;
     }
 
@@ -143,35 +161,35 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
     try {
       if (mode === 'login') {
         await signInWithEmail(email, password);
-        toast.success('登录成功');
+        toast.success(t('authDialog.toast.loginSuccess'));
         handleClose();
       } else if (mode === 'register') {
         await signUpWithEmail(email, password);
-        toast.success('注册成功，请查看邮箱验证链接');
+        toast.success(t('authDialog.toast.registerSuccess'));
         handleClose();
       } else if (mode === 'reset') {
         await sendPasswordResetEmail(email);
-        toast.success('验证码已发送，请在邮件中查看并输入');
+        toast.success(t('authDialog.toast.resetCodeSent'));
         switchMode('reset-code');
       } else {
         if (!isRecoveryCodeVerified) {
           await verifyRecoveryOtp(email, recoveryCode.trim());
           setIsRecoveryCodeVerified(true);
-          toast.success('验证码校验通过');
+          toast.success(t('authDialog.toast.recoveryCodeVerified'));
         }
         await updatePassword(password);
-        toast.success('密码已重置，已自动登录');
+        toast.success(t('authDialog.toast.passwordResetSuccess'));
         handleClose();
       }
     } catch (error: any) {
       const fallbackMessage =
         mode === 'login'
-          ? '登录失败'
+          ? t('authDialog.toast.loginFailed')
           : mode === 'register'
-            ? '注册失败'
+            ? t('authDialog.toast.registerFailed')
             : mode === 'reset'
-              ? '发送重置邮件失败'
-              : '验证码校验或重置失败';
+              ? t('authDialog.toast.resetEmailFailed')
+              : t('authDialog.toast.resetOrVerifyFailed');
       toast.error(error.message || fallbackMessage);
     } finally {
       setIsSubmitting(false);
@@ -182,7 +200,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
     try {
       await signInWithOAuth(provider);
     } catch (error: any) {
-      toast.error(error.message || '登录失败');
+      toast.error(error.message || t('authDialog.toast.loginFailed'));
     }
   };
 
@@ -211,21 +229,21 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
         >
           <RadixDialog.Title className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
             {mode === 'login'
-              ? '登录'
+              ? t('authDialog.title.login')
               : mode === 'register'
-                ? '注册'
+                ? t('authDialog.title.register')
                 : mode === 'reset'
-                  ? '找回密码'
-                  : '输入验证码并重置密码'}
+                  ? t('authDialog.title.reset')
+                  : t('authDialog.title.resetCode')}
           </RadixDialog.Title>
           <RadixDialog.Description className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             {mode === 'login'
-              ? '登录以同步你的资料和设置'
+              ? t('authDialog.description.login')
               : mode === 'register'
-                ? '创建账号开始使用'
+                ? t('authDialog.description.register')
                 : mode === 'reset'
-                  ? '输入邮箱，我们会发送验证码'
-                  : '请输入邮件中的验证码，并设置新密码'}
+                  ? t('authDialog.description.reset')
+                  : t('authDialog.description.resetCode')}
           </RadixDialog.Description>
 
           {/* OAuth buttons */}
@@ -284,7 +302,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
           {mode !== 'reset' && mode !== 'reset-code' && (
             <div className="flex items-center gap-3 mb-5">
               <div className="flex-1 border-t border-gray-200 dark:border-gray-700" />
-              <span className="text-xs text-gray-400 dark:text-gray-500">或使用邮箱</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">{t('authDialog.orUseEmail')}</span>
               <div className="flex-1 border-t border-gray-200 dark:border-gray-700" />
             </div>
           )}
@@ -293,19 +311,21 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {shouldShowEmail && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">邮箱</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (isRecoveryCodeVerified) {
-                    setIsRecoveryCodeVerified(false);
-                  }
-                }}
-                placeholder="name@example.com"
-                aria-invalid={Boolean(emailError)}
-                readOnly={mode === 'reset-code'}
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  {t('authDialog.fields.email')}
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (isRecoveryCodeVerified) {
+                      setIsRecoveryCodeVerified(false);
+                    }
+                  }}
+                  placeholder="name@example.com"
+                  aria-invalid={Boolean(emailError)}
+                  readOnly={mode === 'reset-code'}
                   className={classNames(
                     'w-full px-4 py-2.5 rounded-xl',
                     'bg-gray-50 dark:bg-gray-800/50',
@@ -326,7 +346,9 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
             )}
             {shouldShowRecoveryCode && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">验证码</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  {t('authDialog.fields.recoveryCode')}
+                </label>
                 <input
                   type="text"
                   value={recoveryCode}
@@ -336,7 +358,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                       setIsRecoveryCodeVerified(false);
                     }
                   }}
-                  placeholder="输入邮件中的验证码"
+                  placeholder={t('authDialog.fields.recoveryCodePlaceholder')}
                   aria-invalid={Boolean(recoveryCodeError)}
                   readOnly={isRecoveryCodeVerified}
                   className={classNames(
@@ -356,20 +378,22 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                 />
                 {recoveryCodeError && <p className="mt-1.5 text-xs text-red-500">{recoveryCodeError}</p>}
                 {!recoveryCodeError && isRecoveryCodeVerified && (
-                  <p className="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400">验证码已校验通过</p>
+                  <p className="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+                    {t('authDialog.recoveryCodeVerifiedHint')}
+                  </p>
                 )}
               </div>
             )}
             {shouldShowPassword && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  {mode === 'reset-code' ? '新密码' : '密码'}
+                  {mode === 'reset-code' ? t('authDialog.fields.newPassword') : t('authDialog.fields.password')}
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="至少 6 位"
+                  placeholder={t('authDialog.fields.passwordPlaceholder')}
                   aria-invalid={Boolean(passwordError)}
                   className={classNames(
                     'w-full px-4 py-2.5 rounded-xl',
@@ -422,22 +446,24 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                               : 'text-emerald-500',
                         )}
                       >
-                        强度：{passwordStrength.label}
+                        {t('authDialog.passwordStrength.label')}: {passwordStrength.label}
                       </span>
                     </div>
-                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">至少 6 位，建议包含字母、数字和符号</p>
+                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{t('authDialog.passwordHint')}</p>
                   </>
                 ) : null}
               </div>
             )}
             {shouldShowConfirmPassword && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">确认新密码</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  {t('authDialog.fields.confirmNewPassword')}
+                </label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="再次输入新密码"
+                  placeholder={t('authDialog.fields.confirmNewPasswordPlaceholder')}
                   aria-invalid={Boolean(confirmPasswordError)}
                   className={classNames(
                     'w-full px-4 py-2.5 rounded-xl',
@@ -472,14 +498,22 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                 <div className="flex items-center justify-center gap-2">
                   <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
                   {mode === 'login'
-                    ? '登录中...'
+                    ? t('authDialog.submitting.login')
                     : mode === 'register'
-                      ? '注册中...'
+                      ? t('authDialog.submitting.register')
                       : mode === 'reset'
-                        ? '发送中...'
-                        : '验证中...'}
+                        ? t('authDialog.submitting.sending')
+                        : t('authDialog.submitting.verifying')}
                 </div>
-              ) : mode === 'login' ? '登录' : mode === 'register' ? '注册' : mode === 'reset' ? '发送验证码' : '确认并重置密码'}
+              ) : mode === 'login' ? (
+                t('authDialog.actions.login')
+              ) : mode === 'register' ? (
+                t('authDialog.actions.register')
+              ) : mode === 'reset' ? (
+                t('authDialog.actions.sendCode')
+              ) : (
+                t('authDialog.actions.confirmReset')
+              )}
             </button>
           </form>
 
@@ -491,19 +525,19 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                 onClick={() => switchMode(mode === 'reset-code' ? 'reset' : 'login')}
                 className="text-sm text-purple-500 hover:text-purple-600 font-medium bg-transparent border-0 p-0 appearance-none"
               >
-                {mode === 'reset-code' ? '返回上一步' : '返回登录'}
+                {mode === 'reset-code' ? t('authDialog.actions.backStep') : t('authDialog.actions.backToLogin')}
               </button>
             ) : (
               <>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {mode === 'login' ? '还没有账号？' : '已有账号？'}
+                  {mode === 'login' ? t('authDialog.switch.noAccount') : t('authDialog.switch.hasAccount')}
                 </span>
                 <button
                   type="button"
                   onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
                   className="text-sm text-purple-500 hover:text-purple-600 font-medium ml-1 bg-transparent border-0 p-0 appearance-none"
                 >
-                  {mode === 'login' ? '去注册' : '去登录'}
+                  {mode === 'login' ? t('authDialog.switch.toRegister') : t('authDialog.switch.toLogin')}
                 </button>
               </>
             )}
@@ -516,7 +550,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                 onClick={() => switchMode('reset')}
                 className="text-sm text-gray-500 hover:text-purple-500 dark:text-gray-400 dark:hover:text-purple-400 transition-colors bg-transparent border-0 p-0 appearance-none"
               >
-                忘记密码？
+                {t('authDialog.actions.forgotPassword')}
               </button>
             </div>
           )}
@@ -527,13 +561,13 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                 onClick={() => switchMode('reset')}
                 className="text-sm text-gray-500 hover:text-purple-500 dark:text-gray-400 dark:hover:text-purple-400 transition-colors bg-transparent border-0 p-0 appearance-none"
               >
-                找回密码
+                {t('authDialog.actions.recoverPassword')}
               </button>
             </div>
           )}
           {mode === 'reset' && (
             <div className="mt-3 text-center text-xs text-gray-500 dark:text-gray-400">
-              发送后请在邮箱中复制验证码并回到这里输入
+              {t('authDialog.resetMailHint')}
             </div>
           )}
           {mode === 'reset-code' && (
@@ -545,14 +579,14 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
                     await sendPasswordResetEmail(email);
                     setIsRecoveryCodeVerified(false);
                     setRecoveryCode('');
-                    toast.success('验证码已重新发送');
+                    toast.success(t('authDialog.toast.recoveryCodeResent'));
                   } catch (error: any) {
-                    toast.error(error.message || '验证码发送失败');
+                    toast.error(error.message || t('authDialog.toast.recoveryCodeSendFailed'));
                   }
                 }}
                 className="text-sm text-gray-500 hover:text-purple-500 dark:text-gray-400 dark:hover:text-purple-400 transition-colors bg-transparent border-0 p-0 appearance-none"
               >
-                没收到验证码？重新发送
+                {t('authDialog.actions.resendCode')}
               </button>
             </div>
           )}
@@ -561,7 +595,7 @@ export function AuthDialog({ open, onClose, initialMode = 'login' }: AuthDialogP
             <RadixDialog.Close asChild>
               <button
                 className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                aria-label="Close"
+                aria-label={t('authDialog.actions.close')}
               >
                 <div className="i-ph:x w-4 h-4 text-gray-400" />
               </button>
