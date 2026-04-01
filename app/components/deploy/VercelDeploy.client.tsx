@@ -5,24 +5,26 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { webcontainer } from '~/lib/webcontainer';
 import { path } from '~/utils/path';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { storageKeyVercelProject } from '~/lib/persistence/storageKeys';
 import { formatBuildFailureOutput } from './deployUtils';
 
 export function useVercelDeploy() {
+  const { t } = useTranslation('chat');
   const [isDeploying, setIsDeploying] = useState(false);
   const vercelConn = useStore(vercelConnection);
   const currentChatId = useStore(chatId);
 
   const handleVercelDeploy = async () => {
     if (!vercelConn.user || !vercelConn.token) {
-      toast.error('Please connect to Vercel first in the settings tab!');
+      toast.error(t('vercelDeploy.connectFirst'));
       return false;
     }
 
     if (!currentChatId) {
-      toast.error('No active chat found');
+      toast.error(t('vercelDeploy.noActiveChat'));
       return false;
     }
 
@@ -32,7 +34,7 @@ export function useVercelDeploy() {
       const artifact = workbenchStore.firstArtifact;
 
       if (!artifact) {
-        throw new Error('No active project found');
+        throw new Error(t('vercelDeploy.noActiveProject'));
       }
 
       // Create a deployment artifact for visual feedback
@@ -40,7 +42,7 @@ export function useVercelDeploy() {
       workbenchStore.addArtifact({
         id: deploymentId,
         messageId: deploymentId,
-        title: 'Vercel Deployment',
+        title: t('vercelDeploy.artifactTitle'),
         type: 'standalone',
       });
 
@@ -74,7 +76,7 @@ export function useVercelDeploy() {
           error: formatBuildFailureOutput(buildOutput?.output),
           source: 'vercel',
         });
-        throw new Error('Build failed');
+        throw new Error(t('vercelDeploy.buildFailed'));
       }
 
       // Notify that build succeeded and deployment is starting
@@ -108,7 +110,7 @@ export function useVercelDeploy() {
       }
 
       if (!buildPathExists) {
-        throw new Error('Could not find build output directory. Please check your build configuration.');
+        throw new Error(t('vercelDeploy.missingBuildOutputDir'));
       }
 
       // Get all files recursively
@@ -201,10 +203,10 @@ export function useVercelDeploy() {
 
         // Notify that deployment failed
         deployArtifact.runner.handleDeployAction('deploying', 'failed', {
-          error: data.error || 'Invalid deployment response',
+          error: data.error || t('vercelDeploy.invalidResponse'),
           source: 'vercel',
         });
-        throw new Error(data.error || 'Invalid deployment response');
+        throw new Error(data.error || t('vercelDeploy.invalidResponse'));
       }
 
       if (data.project) {
@@ -218,12 +220,12 @@ export function useVercelDeploy() {
       });
 
       // Show success toast notification
-      toast.success(`🚀 Vercel deployment completed successfully!`);
+      toast.success(t('vercelDeploy.success'));
 
       return true;
     } catch (err) {
       console.error('Vercel deploy error:', err);
-      toast.error(err instanceof Error ? err.message : 'Vercel deployment failed');
+      toast.error(err instanceof Error ? err.message : t('vercelDeploy.failed'));
 
       return false;
     } finally {

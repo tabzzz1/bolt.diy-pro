@@ -3,6 +3,7 @@ import { STORAGE_KEY_VERCEL_CONNECTION } from '~/lib/persistence/storageKeys';
 import type { VercelConnection } from '~/types/vercel';
 import { logStore } from './logs';
 import { toast } from 'react-toastify';
+import i18n from '~/lib/i18n/config';
 
 // Auto-connect using environment variable
 const envToken = import.meta.env?.VITE_VERCEL_ACCESS_TOKEN;
@@ -143,6 +144,8 @@ export function initializeVercelConnection() {
 export const fetchVercelStatsViaAPI = fetchVercelStats;
 
 export async function fetchVercelStats(token: string) {
+  const t = i18n.getFixedT(null, 'settings');
+
   try {
     isFetchingStats.set(true);
 
@@ -201,7 +204,7 @@ export async function fetchVercelStats(token: string) {
   } catch (error) {
     console.error('Vercel API Error:', error);
     logStore.logError('Failed to fetch Vercel stats', { error });
-    toast.error('Failed to fetch Vercel statistics');
+    toast.error(t('vercelTab.failedToFetchStats'));
   } finally {
     isFetchingStats.set(false);
   }

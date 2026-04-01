@@ -8,6 +8,8 @@ interface ServiceHeaderProps {
   description?: string;
   onTestConnection?: () => void;
   isTestingConnection?: boolean;
+  testConnectionLabel?: string;
+  testingLabel?: string;
   additionalInfo?: React.ReactNode;
   delay?: number;
 }
@@ -19,6 +21,8 @@ export const ServiceHeader = memo(
     description,
     onTestConnection,
     isTestingConnection,
+    testConnectionLabel = 'Test Connection',
+    testingLabel = 'Testing...',
     additionalInfo,
     delay = 0.1,
   }: ServiceHeaderProps) => {
@@ -48,12 +52,12 @@ export const ServiceHeader = memo(
                 {isTestingConnection ? (
                   <>
                     <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
-                    Testing...
+                    {testingLabel}
                   </>
                 ) : (
                   <>
                     <div className="i-ph:plug-charging w-4 h-4" />
-                    Test Connection
+                    {testConnectionLabel}
                   </>
                 )}
               </Button>

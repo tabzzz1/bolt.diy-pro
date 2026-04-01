@@ -5,15 +5,25 @@ interface UseConnectionTestOptions {
   testEndpoint: string;
   serviceName: string;
   getUserIdentifier?: (data: any) => string;
+  getMessages?: {
+    testing?: () => string;
+    success?: (params: { serviceName: string; userIdentifier: string }) => string;
+    failed?: (params: { error: string }) => string;
+  };
 }
 
-export function useConnectionTest({ testEndpoint, serviceName, getUserIdentifier }: UseConnectionTestOptions) {
+export function useConnectionTest({
+  testEndpoint,
+  serviceName,
+  getUserIdentifier,
+  getMessages,
+}: UseConnectionTestOptions) {
   const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
 
   const testConnection = useCallback(async () => {
     setTestResult({
       status: 'testing',
-      message: 'Testing connection...',
+      message: getMessages?.testing?.() ?? 'Testing connection...',
     });
 
     try {
@@ -30,25 +40,29 @@ export function useConnectionTest({ testEndpoint, serviceName, getUserIdentifier
 
         setTestResult({
           status: 'success',
-          message: `Connected successfully to ${serviceName} as ${userIdentifier}`,
+          message:
+            getMessages?.success?.({ serviceName, userIdentifier }) ??
+            `Connected successfully to ${serviceName} as ${userIdentifier}`,
           timestamp: Date.now(),
         });
       } else {
         const errorData = (await response.json().catch(() => ({}))) as { error?: string };
+        const error = errorData.error || `${response.status} ${response.statusText}`;
         setTestResult({
           status: 'error',
-          message: `Connection failed: ${errorData.error || `${response.status} ${response.statusText}`}`,
+          message: getMessages?.failed?.({ error }) ?? `Connection failed: ${error}`,
           timestamp: Date.now(),
         });
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setTestResult({
         status: 'error',
-        message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: getMessages?.failed?.({ error: errorMessage }) ?? `Connection failed: ${errorMessage}`,
         timestamp: Date.now(),
       });
     }
-  }, [testEndpoint, serviceName, getUserIdentifier]);
+  }, [testEndpoint, serviceName, getUserIdentifier, getMessages]);
 
   const clearTestResult = useCallback(() => {
     setTestResult(null);
