@@ -121,6 +121,8 @@ export function DataTab() {
     handleResetChats,
     handleDownloadTemplate,
     handleImportAPIKeys,
+    handleExportGrowthData,
+    handleDeleteGrowthData,
   } = useDataOperations({
     customDb: db || undefined, // Pass the boltHistory database, converting null to undefined
     onReloadSettings: () => window.location.reload(),
@@ -627,6 +629,90 @@ export function DataTab() {
                     </>
                   ) : (
                     t('resetAll')
+                  )}
+                </Button>
+              </motion.div>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+
+      {/* Growth Data Rights Section */}
+      <div>
+        <h2 className="text-xl font-semibold mb-2 text-bolt-elements-textPrimary">Growth Data Rights</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center mb-2">
+                <motion.div className="text-accent-500 mr-2" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                  <div className="i-ph-download-duotone w-5 h-5" />
+                </motion.div>
+                <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                  Export Growth Data (JSON)
+                </CardTitle>
+              </div>
+              <CardDescription>Download only growth-domain data in one JSON file.</CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full">
+                <Button
+                  onClick={handleExportGrowthData}
+                  disabled={isExporting}
+                  variant="outline"
+                  size="sm"
+                  className={classNames(
+                    'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
+                    isExporting ? 'cursor-not-allowed' : '',
+                  )}
+                >
+                  {isExporting ? (
+                    <>
+                      <div className="i-ph-spinner-gap-bold animate-spin w-4 h-4 mr-2" />
+                      Exporting
+                    </>
+                  ) : (
+                    'Export Growth Data (JSON)'
+                  )}
+                </Button>
+              </motion.div>
+            </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center mb-2">
+                <motion.div
+                  className="text-red-500 dark:text-red-400 mr-2"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <div className="i-ph-trash-duotone w-5 h-5" />
+                </motion.div>
+                <CardTitle className="text-lg group-hover:text-bolt-elements-item-contentAccent transition-colors">
+                  Delete Growth Data
+                </CardTitle>
+              </div>
+              <CardDescription>Permanently delete growth-domain data and return sync result.</CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="w-full">
+                <Button
+                  onClick={handleDeleteGrowthData}
+                  disabled={isResetting}
+                  variant="outline"
+                  size="sm"
+                  className={classNames(
+                    'hover:text-bolt-elements-item-contentAccent hover:border-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-item-backgroundAccent transition-colors w-full justify-center',
+                    isResetting ? 'cursor-not-allowed' : '',
+                  )}
+                >
+                  {isResetting ? (
+                    <>
+                      <div className="i-ph-spinner-gap-bold animate-spin w-4 h-4 mr-2" />
+                      Deleting
+                    </>
+                  ) : (
+                    'Delete Growth Data'
                   )}
                 </Button>
               </motion.div>

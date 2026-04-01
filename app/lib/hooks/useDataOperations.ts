@@ -1048,6 +1048,107 @@ export function useDataOperations({
   }, [showProgress]);
 
   /**
+   * Export growth-domain data to a JSON file
+   */
+  const handleExportGrowthData = useCallback(async () => {
+    setIsExporting(true);
+
+    try {
+      const response = await fetch('/api/growth/export', { method: 'GET' });
+
+      if (!response.ok) {
+        let message = 'Failed to export growth data';
+
+        try {
+          const payload = (await response.json()) as { message?: string };
+          message = payload.message || message;
+        } catch {
+          // Ignore parse failures and keep fallback message.
+        }
+
+        throw new Error(message);
+      }
+
+      const growthData = await response.json();
+      const blob = new Blob([JSON.stringify(growthData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'lifebegins-growth-data.json';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+
+      toast.success('Growth data exported successfully', {
+        position: 'bottom-right',
+        autoClose: 3000,
+      });
+    } catch (error) {
+      toast.error(`Failed to export growth data: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+        position: 'bottom-right',
+        autoClose: 3000,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }, []);
+
+  /**
+   * Delete growth-domain data synchronously
+   */
+  const handleDeleteGrowthData = useCallback(async () => {
+    setIsResetting(true);
+
+    try {
+      const response = await fetch('/api/growth/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: true }),
+      });
+
+      if (!response.ok) {
+        let message = 'Failed to delete growth data';
+
+        try {
+          const payload = (await response.json()) as { message?: string };
+          message = payload.message || message;
+        } catch {
+          // Ignore parse failures and keep fallback message.
+        }
+
+        throw new Error(message);
+      }
+
+      const payload = (await response.json()) as {
+        deletedCount: number;
+        durationMs: number;
+        result: 'success' | 'partial' | 'failed';
+        completed: boolean;
+      };
+
+      if (!payload.completed) {
+        throw new Error('Growth delete operation did not complete');
+      }
+
+      toast.success(
+        `Growth data deleted: ${payload.deletedCount} records in ${payload.durationMs}ms (${payload.result})`,
+        {
+          position: 'bottom-right',
+          autoClose: 3500,
+        },
+      );
+    } catch (error) {
+      toast.error(`Failed to delete growth data: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+        position: 'bottom-right',
+        autoClose: 3000,
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  }, []);
+
+  /**
    * Undo the last operation if possible
    */
   const handleUndo = useCallback(async () => {
@@ -1235,6 +1336,8 @@ export function useDataOperations({
     handleResetChats,
     handleDownloadTemplate,
     handleExportAPIKeys,
+    handleExportGrowthData,
+    handleDeleteGrowthData,
     handleUndo,
   };
 }
