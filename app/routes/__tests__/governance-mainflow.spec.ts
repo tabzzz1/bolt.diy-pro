@@ -1,9 +1,10 @@
 import React from 'react';
 import { cleanup, fireEvent, render, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loader as githubUserLoader } from '~/routes/api.github-user';
 import { assertGrowthFeatureEnabled } from '~/lib/governance/featureFlags.server';
 import FeaturesTab from '~/components/@settings/tabs/features/FeaturesTab';
+import { installJSDOMGlobals, teardownJSDOMGlobals } from './helpers/jsdom-bootstrap';
 
 const mocked = vi.hoisted(() => {
   return {
@@ -110,6 +111,14 @@ describe('governance mainflow safety', () => {
 });
 
 describe('governance features tab visibility', () => {
+  beforeAll(() => {
+    installJSDOMGlobals();
+  });
+
+  afterAll(() => {
+    teardownJSDOMGlobals();
+  });
+
   beforeEach(() => {
     mocked.useSettingsMock.mockReset();
     mocked.toastSuccess.mockReset();
