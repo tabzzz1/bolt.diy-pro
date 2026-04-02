@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildLifeBeginsFeatures } from './lifebeginsFeatures';
 
 describe('buildLifeBeginsFeatures', () => {
-  it('returns five switches even when all lifebegins flags are false', () => {
+  it('returns five domains in stable id order', () => {
     const features = buildLifeBeginsFeatures({
       lifebeginsAnchorEnabled: false,
       lifebeginsForkEnabled: false,
@@ -12,9 +12,16 @@ describe('buildLifeBeginsFeatures', () => {
     });
 
     expect(features).toHaveLength(5);
+    expect(features.map((feature) => feature.id)).toEqual([
+      'lifebegins.anchor',
+      'lifebegins.fork',
+      'lifebegins.failure',
+      'lifebegins.timeline',
+      'lifebegins.dna',
+    ]);
   });
 
-  it('preserves domain ids and enabled states for each returned switch', () => {
+  it('returns i18n key contract for title/description and toggle toasts', () => {
     const features = buildLifeBeginsFeatures({
       lifebeginsAnchorEnabled: true,
       lifebeginsForkEnabled: false,
@@ -23,17 +30,59 @@ describe('buildLifeBeginsFeatures', () => {
       lifebeginsDnaEnabled: true,
     });
 
-    expect(features.map((feature) => feature.id)).toEqual([
-      'lifebegins.anchor',
-      'lifebegins.fork',
-      'lifebegins.failure',
-      'lifebegins.timeline',
-      'lifebegins.dna',
+    expect(
+      features.map((feature) => ({
+        id: feature.id,
+        titleKey: (feature as any).titleKey,
+        descriptionKey: (feature as any).descriptionKey,
+        enabledToastKey: (feature as any).enabledToastKey,
+        disabledToastKey: (feature as any).disabledToastKey,
+      })),
+    ).toEqual([
+      {
+        id: 'lifebegins.anchor',
+        titleKey: 'lifeBeginsAnchorTitle',
+        descriptionKey: 'lifeBeginsAnchorDesc',
+        enabledToastKey: 'lifeBeginsAnchorEnabled',
+        disabledToastKey: 'lifeBeginsAnchorDisabled',
+      },
+      {
+        id: 'lifebegins.fork',
+        titleKey: 'lifeBeginsForkTitle',
+        descriptionKey: 'lifeBeginsForkDesc',
+        enabledToastKey: 'lifeBeginsForkEnabled',
+        disabledToastKey: 'lifeBeginsForkDisabled',
+      },
+      {
+        id: 'lifebegins.failure',
+        titleKey: 'lifeBeginsFailureTitle',
+        descriptionKey: 'lifeBeginsFailureDesc',
+        enabledToastKey: 'lifeBeginsFailureEnabled',
+        disabledToastKey: 'lifeBeginsFailureDisabled',
+      },
+      {
+        id: 'lifebegins.timeline',
+        titleKey: 'lifeBeginsTimelineTitle',
+        descriptionKey: 'lifeBeginsTimelineDesc',
+        enabledToastKey: 'lifeBeginsTimelineEnabled',
+        disabledToastKey: 'lifeBeginsTimelineDisabled',
+      },
+      {
+        id: 'lifebegins.dna',
+        titleKey: 'lifeBeginsDnaTitle',
+        descriptionKey: 'lifeBeginsDnaDesc',
+        enabledToastKey: 'lifeBeginsDnaEnabled',
+        disabledToastKey: 'lifeBeginsDnaDisabled',
+      },
     ]);
-    expect(features.map((feature) => feature.enabled)).toEqual([true, false, true, false, true]);
+
+    features.forEach((feature) => {
+      expect(feature).not.toHaveProperty('title');
+      expect(feature).not.toHaveProperty('description');
+    });
   });
 
-  it('returns all five items for mixed true/false flags without filtering by enabled', () => {
+  it('preserves enabled state mapping one-to-one with input flags', () => {
     const features = buildLifeBeginsFeatures({
       lifebeginsAnchorEnabled: false,
       lifebeginsForkEnabled: true,
@@ -42,9 +91,6 @@ describe('buildLifeBeginsFeatures', () => {
       lifebeginsDnaEnabled: false,
     });
 
-    expect(features).toHaveLength(5);
-    expect(features.some((feature) => feature.id === 'lifebegins.anchor' && feature.enabled === false)).toBe(true);
-    expect(features.some((feature) => feature.id === 'lifebegins.fork' && feature.enabled === true)).toBe(true);
-    expect(features.some((feature) => feature.id === 'lifebegins.timeline' && feature.enabled === true)).toBe(true);
+    expect(features.map((feature) => feature.enabled)).toEqual([false, true, false, true, false]);
   });
 });
