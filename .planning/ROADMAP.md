@@ -12,7 +12,7 @@
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: Governance & Safe Rollout** - 建立新能力的发布开关、回滚与数据权利边界 (completed 2026-04-01)
+- [x] **Phase 1: Governance & Safe Rollout** - 建立新能力的发布开关、回滚与数据权利边界 (completed 2026-04-02)
 - [ ] **Phase 2: Intent Anchor Experience** - 交付会话级初心锚定、持续展示与偏移提醒
 - [ ] **Phase 3: Fork Futures Decisions** - 交付 A/B 分岔对比、选择与复盘留痕
 - [ ] **Phase 4: Failure Museum MVP** - 交付关键失败自动沉淀、检索与人工修订
@@ -34,7 +34,7 @@ Plans:
 - [x] 01-governance-safe-rollout-01-PLAN.md — 双层开关治理主干、统一拒绝语义与主链路回归
 - [x] 01-governance-safe-rollout-02-PLAN.md — growth 域导出/删除边界与最小匿名审计闭环
 - [x] 01-governance-safe-rollout-03-PLAN.md — 修复 FeaturesTab 的 LifeBegins 五开关可见性回归
-- [ ] 01-governance-safe-rollout-04-PLAN.md — 修复 governance-mainflow 回归在 Node 环境下 UI 断言的 document 缺失问题
+- [x] 01-governance-safe-rollout-04-PLAN.md — 修复 governance-mainflow 回归在 Node 环境下 UI 断言的 document 缺失问题
 
 ### Phase 2: Intent Anchor Experience
 **Goal**: 用户在会话开始与执行过程中始终有清晰目标、边界与可追溯变更  
@@ -102,7 +102,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Governance & Safe Rollout | 3/4 | In progress (gap closure) | - |
+| 1. Governance & Safe Rollout | 4/4 | Complete | 2026-04-02 |
 | 2. Intent Anchor Experience | 0/0 | Not started | - |
 | 3. Fork Futures Decisions | 0/0 | Not started | - |
 | 4. Failure Museum MVP | 0/0 | Not started | - |
