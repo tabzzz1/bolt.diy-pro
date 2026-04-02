@@ -135,11 +135,11 @@ describe('governance features tab visibility', () => {
 
     const { getByText } = render(React.createElement(FeaturesTab));
 
-    expect(getByText('Intent Anchor')).toBeTruthy();
-    expect(getByText('Fork Futures')).toBeTruthy();
-    expect(getByText('Failure Museum')).toBeTruthy();
-    expect(getByText('Life Timeline')).toBeTruthy();
-    expect(getByText('Builder DNA')).toBeTruthy();
+    expect(getByText('lifeBeginsAnchorTitle')).toBeTruthy();
+    expect(getByText('lifeBeginsForkTitle')).toBeTruthy();
+    expect(getByText('lifeBeginsFailureTitle')).toBeTruthy();
+    expect(getByText('lifeBeginsTimelineTitle')).toBeTruthy();
+    expect(getByText('lifeBeginsDnaTitle')).toBeTruthy();
   });
 
   it('keeps toggle behavior wired to existing setter and success toast', () => {
@@ -148,13 +148,13 @@ describe('governance features tab visibility', () => {
 
     const { getByText } = render(React.createElement(FeaturesTab));
 
-    const anchorCard = getByText('Intent Anchor').closest('.group');
+    const anchorCard = getByText('lifeBeginsAnchorTitle').closest('.group');
     expect(anchorCard).toBeTruthy();
 
     const anchorSwitch = within(anchorCard as HTMLElement).getByRole('switch');
     fireEvent.click(anchorSwitch);
 
     expect(settings.setLifeBeginsAnchorEnabled).toHaveBeenCalledWith(true);
-    expect(mocked.toastSuccess).toHaveBeenCalledWith('lifebegins.anchor enabled');
+    expect(mocked.toastSuccess).toHaveBeenCalledWith('lifeBeginsAnchorEnabled');
   });
 });

@@ -138,6 +138,29 @@ export default function FeaturesTab() {
     setLifeBeginsDnaEnabled,
   } = useSettings();
 
+  const lifeBeginsFeatures = React.useMemo(
+    () =>
+      buildLifeBeginsFeatures({
+        lifebeginsAnchorEnabled,
+        lifebeginsForkEnabled,
+        lifebeginsFailureEnabled,
+        lifebeginsTimelineEnabled,
+        lifebeginsDnaEnabled,
+      }),
+    [
+      lifebeginsAnchorEnabled,
+      lifebeginsForkEnabled,
+      lifebeginsFailureEnabled,
+      lifebeginsTimelineEnabled,
+      lifebeginsDnaEnabled,
+    ],
+  );
+
+  const lifeBeginsFeatureMap = React.useMemo(
+    () => new Map(lifeBeginsFeatures.map((feature) => [feature.id, feature])),
+    [lifeBeginsFeatures],
+  );
+
   const handleFeatureDisabledError = useCallback((error: unknown) => {
     if (typeof error !== 'object' || error === null) {
       return false;
@@ -150,6 +173,48 @@ export default function FeaturesTab() {
 
     return false;
   }, []);
+
+  const handleToggleLifeBeginsFeature = useCallback(
+    (id: string, enabled: boolean) => {
+      const feature = lifeBeginsFeatureMap.get(id);
+
+      if (!feature) {
+        return false;
+      }
+
+      switch (id) {
+        case 'lifebegins.anchor':
+          setLifeBeginsAnchorEnabled(enabled);
+          break;
+        case 'lifebegins.fork':
+          setLifeBeginsForkEnabled(enabled);
+          break;
+        case 'lifebegins.failure':
+          setLifeBeginsFailureEnabled(enabled);
+          break;
+        case 'lifebegins.timeline':
+          setLifeBeginsTimelineEnabled(enabled);
+          break;
+        case 'lifebegins.dna':
+          setLifeBeginsDnaEnabled(enabled);
+          break;
+        default:
+          return false;
+      }
+
+      toast.success(t(enabled ? feature.enabledToastKey : feature.disabledToastKey) as string);
+      return true;
+    },
+    [
+      lifeBeginsFeatureMap,
+      setLifeBeginsAnchorEnabled,
+      setLifeBeginsForkEnabled,
+      setLifeBeginsFailureEnabled,
+      setLifeBeginsTimelineEnabled,
+      setLifeBeginsDnaEnabled,
+      t,
+    ],
+  );
 
   // Enable features by default on first load
   React.useEffect(() => {
@@ -178,6 +243,10 @@ export default function FeaturesTab() {
   const handleToggleFeature = useCallback(
     (id: string, enabled: boolean) => {
       try {
+        if (handleToggleLifeBeginsFeature(id, enabled)) {
+          return;
+        }
+
         switch (id) {
           case 'latestBranch': {
             enableLatestBranch(enabled);
@@ -203,36 +272,6 @@ export default function FeaturesTab() {
             break;
           }
 
-          case 'lifebegins.anchor': {
-            setLifeBeginsAnchorEnabled(enabled);
-            toast.success(enabled ? 'lifebegins.anchor enabled' : 'lifebegins.anchor disabled');
-            break;
-          }
-
-          case 'lifebegins.fork': {
-            setLifeBeginsForkEnabled(enabled);
-            toast.success(enabled ? 'lifebegins.fork enabled' : 'lifebegins.fork disabled');
-            break;
-          }
-
-          case 'lifebegins.failure': {
-            setLifeBeginsFailureEnabled(enabled);
-            toast.success(enabled ? 'lifebegins.failure enabled' : 'lifebegins.failure disabled');
-            break;
-          }
-
-          case 'lifebegins.timeline': {
-            setLifeBeginsTimelineEnabled(enabled);
-            toast.success(enabled ? 'lifebegins.timeline enabled' : 'lifebegins.timeline disabled');
-            break;
-          }
-
-          case 'lifebegins.dna': {
-            setLifeBeginsDnaEnabled(enabled);
-            toast.success(enabled ? 'lifebegins.dna enabled' : 'lifebegins.dna disabled');
-            break;
-          }
-
           default:
             break;
         }
@@ -247,11 +286,7 @@ export default function FeaturesTab() {
       setAutoSelectTemplate,
       enableContextOptimization,
       setEventLogs,
-      setLifeBeginsAnchorEnabled,
-      setLifeBeginsForkEnabled,
-      setLifeBeginsFailureEnabled,
-      setLifeBeginsTimelineEnabled,
-      setLifeBeginsDnaEnabled,
+      handleToggleLifeBeginsFeature,
       handleFeatureDisabledError,
       t,
     ],
@@ -292,13 +327,13 @@ export default function FeaturesTab() {
         tooltip: t('eventLoggingTooltip'),
       },
     ],
-    lifebegins: buildLifeBeginsFeatures({
-      lifebeginsAnchorEnabled,
-      lifebeginsForkEnabled,
-      lifebeginsFailureEnabled,
-      lifebeginsTimelineEnabled,
-      lifebeginsDnaEnabled,
-    }),
+    lifebegins: lifeBeginsFeatures.map((feature) => ({
+      id: feature.id,
+      title: t(feature.titleKey) as string,
+      description: t(feature.descriptionKey) as string,
+      icon: feature.icon,
+      enabled: feature.enabled,
+    })),
     beta: [],
   };
 
@@ -325,10 +360,10 @@ export default function FeaturesTab() {
       )}
 
       <FeatureSection
-        title="LifeBegins"
+        title={t('lifeBeginsTitle')}
         features={features.lifebegins}
         icon="i-ph:rocket-launch"
-        description="Growth domains controlled by governance flags."
+        description={t('lifeBeginsDesc')}
         onToggleFeature={handleToggleFeature}
         t={t as any}
       />

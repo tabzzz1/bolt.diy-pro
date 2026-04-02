@@ -33,10 +33,10 @@ describe('buildLifeBeginsFeatures', () => {
     expect(
       features.map((feature) => ({
         id: feature.id,
-        titleKey: (feature as any).titleKey,
-        descriptionKey: (feature as any).descriptionKey,
-        enabledToastKey: (feature as any).enabledToastKey,
-        disabledToastKey: (feature as any).disabledToastKey,
+        titleKey: feature.titleKey,
+        descriptionKey: feature.descriptionKey,
+        enabledToastKey: feature.enabledToastKey,
+        disabledToastKey: feature.disabledToastKey,
       })),
     ).toEqual([
       {
