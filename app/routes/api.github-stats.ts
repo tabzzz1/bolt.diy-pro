@@ -1,22 +1,17 @@
 import { json } from '@remix-run/cloudflare';
-import { getApiKeysFromCookie } from '~/lib/api/cookies';
+import { resolveProviderToken } from '~/lib/api/providerToken';
 import { withSecurity } from '~/lib/security';
 import type { GitHubUserResponse, GitHubStats } from '~/types/GitHub';
 
 async function githubStatsLoader({ request, context }: { request: Request; context: any }) {
   try {
-    // Get API keys from cookies (server-side only)
-    const cookieHeader = request.headers.get('Cookie');
-    const apiKeys = getApiKeysFromCookie(cookieHeader);
-
-    // Try to get GitHub token from various sources
-    const githubToken =
-      apiKeys.GITHUB_API_KEY ||
-      apiKeys.VITE_GITHUB_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.GITHUB_TOKEN ||
-      context?.cloudflare?.env?.VITE_GITHUB_ACCESS_TOKEN ||
-      process.env.GITHUB_TOKEN ||
-      process.env.VITE_GITHUB_ACCESS_TOKEN;
+    const githubToken = resolveProviderToken({
+      request,
+      context,
+      cookieKeys: ['VITE_GITHUB_ACCESS_TOKEN', 'githubToken'],
+      apiKeyKeys: ['GITHUB_API_KEY', 'VITE_GITHUB_ACCESS_TOKEN'],
+      envKeys: ['GITHUB_TOKEN', 'VITE_GITHUB_ACCESS_TOKEN'],
+    });
 
     if (!githubToken) {
       return json({ error: 'GitHub token not found' }, { status: 401 });

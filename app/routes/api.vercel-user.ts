@@ -1,27 +1,20 @@
 import { json } from '@remix-run/cloudflare';
-import { getApiKeysFromCookie } from '~/lib/api/cookies';
+import { resolveProviderToken } from '~/lib/api/providerToken';
 import { withSecurity } from '~/lib/security';
+
+function resolveVercelToken(request: Request, context: any): string | undefined {
+  return resolveProviderToken({
+    request,
+    context,
+    cookieKeys: ['VITE_VERCEL_ACCESS_TOKEN'],
+    apiKeyKeys: ['VITE_VERCEL_ACCESS_TOKEN'],
+    envKeys: ['VITE_VERCEL_ACCESS_TOKEN'],
+  });
+}
 
 async function vercelUserLoader({ request, context }: { request: Request; context: any }) {
   try {
-    // Get API keys from cookies (server-side only)
-    const cookieHeader = request.headers.get('Cookie');
-    const apiKeys = getApiKeysFromCookie(cookieHeader);
-
-    // Try to get Vercel token from various sources
-    let vercelToken =
-      apiKeys.VITE_VERCEL_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.VITE_VERCEL_ACCESS_TOKEN ||
-      process.env.VITE_VERCEL_ACCESS_TOKEN;
-
-    // Also check for token in request headers (for direct API calls)
-    if (!vercelToken) {
-      const authHeader = request.headers.get('Authorization');
-
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        vercelToken = authHeader.substring(7);
-      }
-    }
+    const vercelToken = resolveVercelToken(request, context);
 
     if (!vercelToken) {
       return json({ error: 'Vercel token not found' }, { status: 401 });
@@ -38,6 +31,17 @@ async function vercelUserLoader({ request, context }: { request: Request; contex
     if (!response.ok) {
       if (response.status === 401) {
         return json({ error: 'Invalid Vercel token' }, { status: 401 });
+      }
+
+      if (response.status === 403) {
+        const details = await response.text().catch(() => '');
+        return json(
+          {
+            error: 'Vercel token is valid but does not have permission to access user info',
+            details,
+          },
+          { status: 403 },
+        );
       }
 
       throw new Error(`Vercel API error: ${response.status}`);
@@ -82,24 +86,7 @@ async function vercelUserAction({ request, context }: { request: Request; contex
     const formData = await request.formData();
     const action = formData.get('action');
 
-    // Get API keys from cookies (server-side only)
-    const cookieHeader = request.headers.get('Cookie');
-    const apiKeys = getApiKeysFromCookie(cookieHeader);
-
-    // Try to get Vercel token from various sources
-    let vercelToken =
-      apiKeys.VITE_VERCEL_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.VITE_VERCEL_ACCESS_TOKEN ||
-      process.env.VITE_VERCEL_ACCESS_TOKEN;
-
-    // Also check for token in request headers (for direct API calls)
-    if (!vercelToken) {
-      const authHeader = request.headers.get('Authorization');
-
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        vercelToken = authHeader.substring(7);
-      }
-    }
+    const vercelToken = resolveVercelToken(request, context);
 
     if (!vercelToken) {
       return json({ error: 'Vercel token not found' }, { status: 401 });
@@ -115,6 +102,17 @@ async function vercelUserAction({ request, context }: { request: Request; contex
       });
 
       if (!response.ok) {
+        if (response.status === 403) {
+          const details = await response.text().catch(() => '');
+          return json(
+            {
+              error: 'Vercel token is valid but does not have permission to list projects',
+              details,
+            },
+            { status: 403 },
+          );
+        }
+
         throw new Error(`Vercel API error: ${response.status}`);
       }
 

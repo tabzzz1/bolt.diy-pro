@@ -1,18 +1,16 @@
 import { json } from '@remix-run/cloudflare';
-import { getApiKeysFromCookie } from '~/lib/api/cookies';
+import { resolveProviderToken } from '~/lib/api/providerToken';
 import { withSecurity } from '~/lib/security';
 
 async function netlifyUserLoader({ request, context }: { request: Request; context: any }) {
   try {
-    // Get API keys from cookies (server-side only)
-    const cookieHeader = request.headers.get('Cookie');
-    const apiKeys = getApiKeysFromCookie(cookieHeader);
-
-    // Try to get Netlify token from various sources
-    const netlifyToken =
-      apiKeys.VITE_NETLIFY_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.VITE_NETLIFY_ACCESS_TOKEN ||
-      process.env.VITE_NETLIFY_ACCESS_TOKEN;
+    const netlifyToken = resolveProviderToken({
+      request,
+      context,
+      cookieKeys: ['VITE_NETLIFY_ACCESS_TOKEN'],
+      apiKeyKeys: ['VITE_NETLIFY_ACCESS_TOKEN'],
+      envKeys: ['VITE_NETLIFY_ACCESS_TOKEN'],
+    });
 
     if (!netlifyToken) {
       return json({ error: 'Netlify token not found' }, { status: 401 });
@@ -71,15 +69,13 @@ async function netlifyUserAction({ request, context }: { request: Request; conte
     const formData = await request.formData();
     const action = formData.get('action');
 
-    // Get API keys from cookies (server-side only)
-    const cookieHeader = request.headers.get('Cookie');
-    const apiKeys = getApiKeysFromCookie(cookieHeader);
-
-    // Try to get Netlify token from various sources
-    const netlifyToken =
-      apiKeys.VITE_NETLIFY_ACCESS_TOKEN ||
-      context?.cloudflare?.env?.VITE_NETLIFY_ACCESS_TOKEN ||
-      process.env.VITE_NETLIFY_ACCESS_TOKEN;
+    const netlifyToken = resolveProviderToken({
+      request,
+      context,
+      cookieKeys: ['VITE_NETLIFY_ACCESS_TOKEN'],
+      apiKeyKeys: ['VITE_NETLIFY_ACCESS_TOKEN'],
+      envKeys: ['VITE_NETLIFY_ACCESS_TOKEN'],
+    });
 
     if (!netlifyToken) {
       return json({ error: 'Netlify token not found' }, { status: 401 });
