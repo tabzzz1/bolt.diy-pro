@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
 import { useTranslation } from 'react-i18next';
 import { logStore } from '~/lib/stores/logs';
-import type { VercelUserResponse } from '~/types/vercel';
+import type { VercelProject, VercelUserResponse } from '~/types/vercel';
 import { classNames } from '~/utils/classNames';
 import { Button } from '~/components/ui/Button';
 import { ServiceHeader, ConnectionTestIndicator } from '~/components/@settings/shared/service-integration';
@@ -24,7 +24,7 @@ import {
 interface ProjectAction {
   name: string;
   icon: string;
-  action: (projectId: string) => Promise<void>;
+  action: (project: VercelProject) => Promise<void>;
   requiresConfirmation?: boolean;
   variant?: 'default' | 'destructive' | 'outline';
 }
@@ -43,6 +43,18 @@ export default function VercelTab() {
   const fetchingStats = useStore(isFetchingStats);
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
   const [isProjectActionLoading, setIsProjectActionLoading] = useState(false);
+
+  const getProjectConsoleUrl = useCallback(
+    (project: VercelProject, section?: string) => {
+      const ownerSlug = project.scopeSlug || connection.user?.username || connection.user?.user?.username;
+      const baseUrl = ownerSlug
+        ? `https://vercel.com/${ownerSlug}/${project.name}`
+        : `https://vercel.com/dashboard/${project.id}`;
+
+      return section ? `${baseUrl}/${section}` : baseUrl;
+    },
+    [connection.user?.username, connection.user?.user?.username],
+  );
 
   // Use shared connection test hook
   const {
@@ -68,7 +80,7 @@ export default function VercelTab() {
       {
         name: t('vercelTab.redeploy'),
         icon: 'i-ph:arrows-clockwise',
-        action: async (projectId: string) => {
+        action: async (project: VercelProject) => {
           try {
             const response = await fetch(`https://api.vercel.com/v1/deployments`, {
               method: 'POST',
@@ -77,7 +89,7 @@ export default function VercelTab() {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                name: projectId,
+                name: project.id,
                 target: 'production',
               }),
             });
@@ -97,62 +109,58 @@ export default function VercelTab() {
       {
         name: t('vercelTab.viewDashboard'),
         icon: 'i-ph:layout',
-        action: async (projectId: string) => {
-          window.open(`https://vercel.com/dashboard/${projectId}`, '_blank');
+        action: async (project: VercelProject) => {
+          window.open(getProjectConsoleUrl(project), '_blank');
         },
       },
       {
         name: t('vercelTab.viewDeployments'),
         icon: 'i-ph:rocket',
-        action: async (projectId: string) => {
-          window.open(`https://vercel.com/dashboard/${projectId}/deployments`, '_blank');
+        action: async (project: VercelProject) => {
+          window.open(getProjectConsoleUrl(project, 'deployments'), '_blank');
         },
       },
       {
         name: t('vercelTab.viewFunctions'),
         icon: 'i-ph:code',
-        action: async (projectId: string) => {
-          window.open(`https://vercel.com/dashboard/${projectId}/functions`, '_blank');
+        action: async (project: VercelProject) => {
+          window.open(getProjectConsoleUrl(project, 'functions'), '_blank');
         },
       },
       {
         name: t('vercelTab.viewAnalytics'),
         icon: 'i-ph:chart-bar',
-        action: async (projectId: string) => {
-          const project = connection.stats?.projects.find((p) => p.id === projectId);
-
-          if (project) {
-            window.open(`https://vercel.com/${connection.user?.username}/${project.name}/analytics`, '_blank');
-          }
+        action: async (project: VercelProject) => {
+          window.open(getProjectConsoleUrl(project, 'analytics'), '_blank');
         },
       },
       {
         name: t('vercelTab.viewDomains'),
         icon: 'i-ph:globe',
-        action: async (projectId: string) => {
-          window.open(`https://vercel.com/dashboard/${projectId}/domains`, '_blank');
+        action: async (project: VercelProject) => {
+          window.open(getProjectConsoleUrl(project, 'settings/domains'), '_blank');
         },
       },
       {
         name: t('vercelTab.viewSettings'),
         icon: 'i-ph:gear',
-        action: async (projectId: string) => {
-          window.open(`https://vercel.com/dashboard/${projectId}/settings`, '_blank');
+        action: async (project: VercelProject) => {
+          window.open(getProjectConsoleUrl(project, 'settings'), '_blank');
         },
       },
       {
         name: t('vercelTab.viewLogs'),
         icon: 'i-ph:scroll',
-        action: async (projectId: string) => {
-          window.open(`https://vercel.com/dashboard/${projectId}/logs`, '_blank');
+        action: async (project: VercelProject) => {
+          window.open(getProjectConsoleUrl(project, 'logs'), '_blank');
         },
       },
       {
         name: t('vercelTab.deleteProject'),
         icon: 'i-ph:trash',
-        action: async (projectId: string) => {
+        action: async (project: VercelProject) => {
           try {
-            const response = await fetch(`https://api.vercel.com/v1/projects/${projectId}`, {
+            const response = await fetch(`https://api.vercel.com/v1/projects/${project.id}`, {
               method: 'DELETE',
               headers: {
                 Authorization: `Bearer ${connection.token}`,
@@ -174,7 +182,7 @@ export default function VercelTab() {
         variant: 'destructive',
       },
     ],
-    [connection.stats?.projects, connection.token, connection.user?.username, t],
+    [connection.token, getProjectConsoleUrl, t],
   ); // Only re-create when token changes
 
   // Initialize connection on component mount - check server-side token first
@@ -282,7 +290,7 @@ export default function VercelTab() {
     toast.success(t('vercelTab.disconnected'));
   };
 
-  const handleProjectAction = useCallback(async (projectId: string, action: ProjectAction) => {
+  const handleProjectAction = useCallback(async (project: VercelProject, action: ProjectAction) => {
     if (action.requiresConfirmation) {
       if (!confirm(t('vercelTab.areYouSureAction', { action: action.name.toLowerCase() }))) {
         return;
@@ -290,7 +298,7 @@ export default function VercelTab() {
     }
 
     setIsProjectActionLoading(true);
-    await action.action(projectId);
+    await action.action(project);
     setIsProjectActionLoading(false);
   }, [t]);
 
@@ -673,7 +681,7 @@ export default function VercelTab() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(`https://vercel.com/dashboard/${project.id}`, '_blank')}
+                          onClick={() => window.open(getProjectConsoleUrl(project), '_blank')}
                           className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                         >
                           <div className="i-ph:arrow-square-out w-3 h-3" />
@@ -688,7 +696,7 @@ export default function VercelTab() {
                           key={action.name}
                           variant={action.variant || 'outline'}
                           size="sm"
-                          onClick={() => handleProjectAction(project.id, action)}
+                          onClick={() => handleProjectAction(project, action)}
                           disabled={isProjectActionLoading}
                           className="flex items-center gap-1 text-xs px-2 py-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                         >
@@ -716,6 +724,7 @@ export default function VercelTab() {
     isProjectsExpanded,
     isProjectActionLoading,
     handleProjectAction,
+    getProjectConsoleUrl,
     projectActions,
     t,
   ]);

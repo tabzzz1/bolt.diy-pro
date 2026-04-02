@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 import type { DeployAlert } from '~/types/actions';
 
@@ -9,10 +10,47 @@ interface DeployAlertProps {
 }
 
 export default function DeployChatAlert({ alert, clearAlert, postMessage }: DeployAlertProps) {
+  const { t } = useTranslation('chat');
   const { type, title, description, content, url, stage, buildStatus, deployStatus } = alert;
 
   // Determine if we should show the deployment progress
   const showProgress = stage && (buildStatus || deployStatus);
+  const currentStatus =
+    stage === 'building' ? buildStatus : stage === 'deploying' || stage === 'complete' ? deployStatus : undefined;
+
+  const titleKey =
+    stage === 'building'
+      ? 'deployAlert.titles.buildingApplication'
+      : stage === 'deploying'
+        ? 'deployAlert.titles.deployingApplication'
+        : stage === 'complete'
+          ? 'deployAlert.titles.deploymentComplete'
+          : undefined;
+
+  let descriptionKey: string | undefined;
+
+  if (stage) {
+    if (currentStatus === 'failed') {
+      descriptionKey =
+        stage === 'building' ? 'deployAlert.descriptions.buildFailed' : 'deployAlert.descriptions.deploymentFailed';
+    } else if (currentStatus === 'running') {
+      descriptionKey =
+        stage === 'building'
+          ? 'deployAlert.descriptions.buildingInProgress'
+          : 'deployAlert.descriptions.deployingInProgress';
+    } else if (currentStatus === 'complete') {
+      descriptionKey =
+        stage === 'building'
+          ? 'deployAlert.descriptions.buildCompletedSuccessfully'
+          : 'deployAlert.descriptions.deploymentCompletedSuccessfully';
+    } else if (currentStatus === 'pending') {
+      descriptionKey =
+        stage === 'building' ? 'deployAlert.descriptions.preparingBuild' : 'deployAlert.descriptions.preparingDeploy';
+    }
+  }
+
+  const resolvedTitle = titleKey ? t(titleKey, { defaultValue: title }) : title;
+  const resolvedDescription = descriptionKey ? t(descriptionKey, { defaultValue: description }) : description;
 
   return (
     <AnimatePresence>
@@ -50,7 +88,7 @@ export default function DeployChatAlert({ alert, clearAlert, postMessage }: Depl
               transition={{ delay: 0.1 }}
               className={`text-sm font-medium text-bolt-elements-textPrimary`}
             >
-              {title}
+              {resolvedTitle}
             </motion.h3>
             <motion.div
               initial={{ opacity: 0 }}
@@ -58,7 +96,7 @@ export default function DeployChatAlert({ alert, clearAlert, postMessage }: Depl
               transition={{ delay: 0.2 }}
               className={`mt-2 text-sm text-bolt-elements-textSecondary`}
             >
-              <p>{description}</p>
+              <p>{resolvedDescription}</p>
 
               {/* Deployment Progress Visualization */}
               {showProgress && (
@@ -88,7 +126,7 @@ export default function DeployChatAlert({ alert, clearAlert, postMessage }: Depl
                           <span className="text-white text-xs">1</span>
                         )}
                       </div>
-                      <span className="ml-2">Build</span>
+                      <span className="ml-2">{t('deployAlert.steps.build')}</span>
                     </div>
 
                     {/* Connector Line */}
@@ -123,7 +161,7 @@ export default function DeployChatAlert({ alert, clearAlert, postMessage }: Depl
                           <span className="text-white text-xs">2</span>
                         )}
                       </div>
-                      <span className="ml-2">Deploy</span>
+                      <span className="ml-2">{t('deployAlert.steps.deploy')}</span>
                     </div>
                   </div>
                 </div>
@@ -142,7 +180,7 @@ export default function DeployChatAlert({ alert, clearAlert, postMessage }: Depl
                     rel="noopener noreferrer"
                     className="text-bolt-elements-item-contentAccent hover:underline flex items-center"
                   >
-                    <span className="mr-1">View deployed site</span>
+                    <span className="mr-1">{t('deployAlert.actions.viewDeployedSite')}</span>
                     <div className="i-ph:arrow-square-out"></div>
                   </a>
                 </div>
@@ -172,7 +210,7 @@ export default function DeployChatAlert({ alert, clearAlert, postMessage }: Depl
                     )}
                   >
                     <div className="i-ph:chat-circle-duotone"></div>
-                    Ask Bolt
+                    {t('alert.askBolt')}
                   </button>
                 )}
                 <button
@@ -185,7 +223,7 @@ export default function DeployChatAlert({ alert, clearAlert, postMessage }: Depl
                     'text-bolt-elements-button-secondary-text',
                   )}
                 >
-                  Dismiss
+                  {t('alert.dismiss')}
                 </button>
               </div>
             </motion.div>

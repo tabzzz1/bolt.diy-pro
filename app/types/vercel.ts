@@ -30,6 +30,8 @@ export interface VercelUser {
 
 export interface VercelProject {
   createdAt: string | number | Date;
+  accountId?: string;
+  scopeSlug?: string;
   targets?: {
     production?: {
       alias?: string[];

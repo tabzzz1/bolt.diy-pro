@@ -148,6 +148,9 @@ export async function fetchVercelStats(token: string) {
 
   try {
     isFetchingStats.set(true);
+    const currentState = vercelConnection.get();
+    const currentUserId = currentState.user?.id || currentState.user?.user?.id;
+    const currentUsername = currentState.user?.username || currentState.user?.user?.username;
 
     const projectsResponse = await fetch('https://api.vercel.com/v9/projects', {
       headers: {
@@ -162,10 +165,45 @@ export async function fetchVercelStats(token: string) {
 
     const projectsData = (await projectsResponse.json()) as any;
     const projects = projectsData.projects || [];
+    const scopeSlugByAccountId = new Map<string, string>();
+
+    if (currentUserId && currentUsername) {
+      scopeSlugByAccountId.set(currentUserId, currentUsername);
+    }
+
+    // Best effort: enrich project ownership mapping so project console links use
+    // https://vercel.com/<scope>/<project> instead of deprecated dashboard URLs.
+    try {
+      const teamsResponse = await fetch('https://api.vercel.com/v2/teams?limit=100', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (teamsResponse.ok) {
+        const teamsData = (await teamsResponse.json()) as { teams?: Array<{ id: string; slug: string }> };
+
+        for (const team of teamsData.teams || []) {
+          if (team.id && team.slug) {
+            scopeSlugByAccountId.set(team.id, team.slug);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to fetch Vercel teams for scope resolution:', error);
+    }
 
     // Fetch latest deployment for each project
     const projectsWithDeployments = await Promise.all(
       projects.map(async (project: any) => {
+        const scopeSlug =
+          scopeSlugByAccountId.get(project.accountId) ||
+          scopeSlugByAccountId.get(project?.link?.orgId) ||
+          scopeSlugByAccountId.get(project?.orgId) ||
+          (project.accountId === currentUserId ? currentUsername : undefined) ||
+          project.scopeSlug;
+
         try {
           const deploymentsResponse = await fetch(
             `https://api.vercel.com/v6/deployments?projectId=${project.id}&limit=1`,
@@ -181,19 +219,25 @@ export async function fetchVercelStats(token: string) {
             const deploymentsData = (await deploymentsResponse.json()) as any;
             return {
               ...project,
+              scopeSlug,
               latestDeployments: deploymentsData.deployments || [],
             };
           }
 
-          return project;
+          return {
+            ...project,
+            scopeSlug,
+          };
         } catch (error) {
           console.error(`Error fetching deployments for project ${project.id}:`, error);
-          return project;
+          return {
+            ...project,
+            scopeSlug,
+          };
         }
       }),
     );
 
-    const currentState = vercelConnection.get();
     updateVercelConnection({
       ...currentState,
       stats: {

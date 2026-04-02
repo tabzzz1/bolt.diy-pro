@@ -895,6 +895,30 @@ const en = {
       success: 'Vercel deployment completed successfully!',
       failed: 'Vercel deployment failed',
     },
+    deployAlert: {
+      titles: {
+        buildingApplication: 'Building Application',
+        deployingApplication: 'Deploying Application',
+        deploymentComplete: 'Deployment Complete',
+      },
+      descriptions: {
+        buildFailed: 'Build failed',
+        deploymentFailed: 'Deployment failed',
+        buildingInProgress: 'Building your application...',
+        deployingInProgress: 'Deploying your application...',
+        buildCompletedSuccessfully: 'Build completed successfully',
+        deploymentCompletedSuccessfully: 'Deployment completed successfully',
+        preparingBuild: 'Preparing to build your application',
+        preparingDeploy: 'Preparing to deploy your application',
+      },
+      steps: {
+        build: 'Build',
+        deploy: 'Deploy',
+      },
+      actions: {
+        viewDeployedSite: 'View deployed site',
+      },
+    },
     importChat: {
       button: 'Import Chat',
       importedDescription: 'Imported Chat',

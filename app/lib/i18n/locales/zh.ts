@@ -836,6 +836,30 @@ const zh = {
       success: 'Vercel 部署成功！',
       failed: 'Vercel 部署失败',
     },
+    deployAlert: {
+      titles: {
+        buildingApplication: '正在构建应用',
+        deployingApplication: '正在部署应用',
+        deploymentComplete: '部署完成',
+      },
+      descriptions: {
+        buildFailed: '构建失败',
+        deploymentFailed: '部署失败',
+        buildingInProgress: '正在构建你的应用...',
+        deployingInProgress: '正在部署你的应用...',
+        buildCompletedSuccessfully: '构建已成功完成',
+        deploymentCompletedSuccessfully: '部署已成功完成',
+        preparingBuild: '正在准备构建你的应用',
+        preparingDeploy: '正在准备部署你的应用',
+      },
+      steps: {
+        build: '构建',
+        deploy: '部署',
+      },
+      actions: {
+        viewDeployedSite: '查看已部署站点',
+      },
+    },
     importChat: {
       button: '导入对话',
       importedDescription: '已导入的对话',

@@ -21,6 +21,17 @@ export default function VercelConnection() {
   const fetchingStats = useStore(isFetchingStats);
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
   const hasInitialized = useRef(false);
+  const currentUsername = connection.user?.username || connection.user?.user?.username;
+
+  const getProjectConsoleUrl = (project: { id: string; name: string; scopeSlug?: string }) => {
+    const ownerSlug = project.scopeSlug || currentUsername;
+
+    if (ownerSlug) {
+      return `https://vercel.com/${ownerSlug}/${project.name}`;
+    }
+
+    return `https://vercel.com/dashboard/${project.id}`;
+  };
 
   console.log('VercelConnection initial state:', {
     connection: {
@@ -291,7 +302,7 @@ export default function VercelConnection() {
                     {connection.stats.projects.map((project) => (
                       <a
                         key={project.id}
-                        href={`https://vercel.com/dashboard/${project.id}`}
+                        href={getProjectConsoleUrl(project)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block p-4 rounded-lg border border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive transition-colors"
