@@ -33,7 +33,11 @@ import { ChatBox } from './ChatBox';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
-import { STORAGE_KEY_CHAT_PANEL_WIDTH, STORAGE_KEY_CHAT_PANEL_COLLAPSED } from '~/lib/persistence/storageKeys';
+import {
+  STORAGE_KEY_CHAT_PANEL_WIDTH,
+  STORAGE_KEY_CHAT_PANEL_COLLAPSED,
+  STORAGE_KEY_MODEL_SETTINGS_COLLAPSED,
+} from '~/lib/persistence/storageKeys';
 
 // ── 拖拽分割面板常量 ─────────────────────────────────────────────────────────
 const MIN_CHAT_WIDTH = 460; // 左侧面板最小宽度 (px)，含左右 padding 各 24px
@@ -156,7 +160,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const { t } = useTranslation('chat');
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
-    const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(false);
+    const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(() => {
+      if (typeof window === 'undefined') {
+        return false;
+      }
+
+      return localStorage.getItem(STORAGE_KEY_MODEL_SETTINGS_COLLAPSED) === 'true';
+    });
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
     const [transcript, setTranscript] = useState('');
@@ -164,6 +174,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const expoUrl = useStore(expoUrlAtom);
     const showWorkbench = useStore(workbenchStore.showWorkbench);
     const [qrModalOpen, setQrModalOpen] = useState(false);
+
+    const handleModelSettingsCollapsedChange = useCallback((collapsed: boolean) => {
+      setIsModelSettingsCollapsed(collapsed);
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_MODEL_SETTINGS_COLLAPSED, String(collapsed));
+      }
+    }, []);
 
     // ── 拖拽分割面板 refs / state ─────────────────────────────────────────────
     // 从 localStorage 读取持久化状态
@@ -735,7 +753,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </div>
                 <ChatBox
                   isModelSettingsCollapsed={isModelSettingsCollapsed}
-                  setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
+                  setIsModelSettingsCollapsed={handleModelSettingsCollapsedChange}
                   provider={provider}
                   setProvider={setProvider}
                   providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}

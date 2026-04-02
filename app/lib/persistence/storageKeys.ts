@@ -66,6 +66,13 @@ export const STORAGE_KEY_CHAT_PANEL_WIDTH = 'bolt_chat_panel_width';
  */
 export const STORAGE_KEY_CHAT_PANEL_COLLAPSED = 'bolt_chat_panel_collapsed';
 
+/**
+ * 聊天输入区中“模型设置”区域是否处于收起状态
+ * 值类型：'true' | 'false'
+ * 读写位置：app/components/chat/BaseChat.tsx
+ */
+export const STORAGE_KEY_MODEL_SETTINGS_COLLAPSED = 'bolt_model_settings_collapsed';
+
 // ─────────────────────────────────────────────
 // 2. AI Provider 配置
 // ─────────────────────────────────────────────
