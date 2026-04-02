@@ -1,4 +1,4 @@
-import { JSDOM } from 'jsdom';
+import { JSDOM, type DOMWindow } from 'jsdom';
 
 type ManagedGlobalKey =
   | 'window'
@@ -24,7 +24,7 @@ const MANAGED_GLOBALS: ManagedGlobalKey[] = [
   'getComputedStyle',
 ];
 
-let installedWindow: Window | null = null;
+let installedWindow: DOMWindow | null = null;
 let snapshot: Record<ManagedGlobalKey, GlobalSnapshot> | null = null;
 
 function setGlobal(name: ManagedGlobalKey, value: unknown) {
