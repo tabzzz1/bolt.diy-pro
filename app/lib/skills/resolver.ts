@@ -1,16 +1,6 @@
 import type { SkillDefinition, SkillsSettings } from '~/lib/skills/schema';
 import { normalizeSkillsSettings } from '~/lib/skills/schema';
 
-type FileMapLike = Record<
-  string,
-  | {
-      type: 'file' | 'folder';
-      content?: string;
-      isBinary?: boolean;
-    }
-  | undefined
->;
-
 const MAX_FILE_CONTEXT_CHARS_PER_FILE = 1200;
 const MAX_FILE_CONTEXT_CHARS_TOTAL = 4000;
 
@@ -18,51 +8,46 @@ function sanitizePromptText(value: string): string {
   return value.replace(/[<>]/g, '').replace(/\u0000/g, '').trim();
 }
 
-function resolveSkillFileContexts(skill: SkillDefinition, files?: FileMapLike): string[] {
-  if (!files || skill.linkedFilePaths.length === 0) {
+function resolveSkillFileContexts(skill: SkillDefinition): string[] {
+  if (skill.linkedFiles.length === 0) {
     return [];
   }
 
   let consumedChars = 0;
   const contexts: string[] = [];
 
-  for (const rawPath of skill.linkedFilePaths) {
+  for (const linkedFile of skill.linkedFiles) {
     if (consumedChars >= MAX_FILE_CONTEXT_CHARS_TOTAL) {
       break;
     }
 
-    const normalizedPath = rawPath.startsWith('/home/project/') ? rawPath : `/home/project/${rawPath}`;
-    const fileEntry = files[normalizedPath] || files[rawPath];
+    const remaining = MAX_FILE_CONTEXT_CHARS_TOTAL - consumedChars;
+    const maxChars = Math.min(MAX_FILE_CONTEXT_CHARS_PER_FILE, remaining);
+    const excerpt = sanitizePromptText(linkedFile.content).slice(0, maxChars);
 
-    if (!fileEntry || fileEntry.type !== 'file' || !fileEntry.content || fileEntry.isBinary) {
+    if (!excerpt) {
       continue;
     }
 
-    const remaining = MAX_FILE_CONTEXT_CHARS_TOTAL - consumedChars;
-    const maxChars = Math.min(MAX_FILE_CONTEXT_CHARS_PER_FILE, remaining);
-    const excerpt = sanitizePromptText(fileEntry.content).slice(0, maxChars);
-
     consumedChars += excerpt.length;
-    contexts.push(`  File Context (${rawPath}): ${excerpt}`);
+    contexts.push(`  File Context (${linkedFile.name}): ${excerpt}`);
   }
 
   return contexts;
 }
 
-function formatSkill(skill: SkillDefinition, userMessage: string, files?: FileMapLike): string {
+function formatSkill(skill: SkillDefinition, userMessage: string): string {
   const name = sanitizePromptText(skill.name);
   const description = sanitizePromptText(skill.description);
   const instruction = sanitizePromptText(skill.instruction);
-  const fileContexts = resolveSkillFileContexts(skill, files);
-  const scriptCommands = skill.scriptCommands.map((command) => sanitizePromptText(command));
+  const fileContexts = resolveSkillFileContexts(skill);
 
   if (skill.mode === 'always') {
     return [
       `- Skill: ${name}`,
-      description ? `  Description: ${description}` : '',
+      description ? `  Use Case: ${description}` : '',
       `  Trigger: Always active`,
       `  Instruction: ${instruction}`,
-      scriptCommands.length > 0 ? `  Script Commands: ${scriptCommands.join(' | ')}` : '',
       ...fileContexts,
     ]
       .filter(Boolean)
@@ -74,10 +59,9 @@ function formatSkill(skill: SkillDefinition, userMessage: string, files?: FileMa
 
   return [
     `- Skill: ${name}`,
-    description ? `  Description: ${description}` : '',
+    description ? `  Use Case: ${description}` : '',
     `  Trigger: Keyword matched (${matchedKeywords.join(', ') || 'none'})`,
     `  Instruction: ${instruction}`,
-    scriptCommands.length > 0 ? `  Script Commands: ${scriptCommands.join(' | ')}` : '',
     ...fileContexts,
   ]
     .filter(Boolean)
@@ -113,7 +97,6 @@ function resolveMatchedSkills(settings: SkillsSettings, userMessage: string): Sk
 export function buildSkillsGuidance(input: {
   settings: unknown;
   userMessage: string;
-  files?: FileMapLike;
 }): { guidance: string; appliedSkills: SkillDefinition[] } | null {
   const settings = normalizeSkillsSettings(input.settings);
   const userMessage = sanitizePromptText(input.userMessage);
@@ -123,7 +106,7 @@ export function buildSkillsGuidance(input: {
     return null;
   }
 
-  const lines = matchedSkills.map((skill) => formatSkill(skill, userMessage, input.files)).join('\n');
+  const lines = matchedSkills.map((skill) => formatSkill(skill, userMessage)).join('\n');
 
   return {
     appliedSkills: matchedSkills,

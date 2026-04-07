@@ -6,7 +6,7 @@ describe('skills resolver', () => {
     const result = buildSkillsGuidance({
       userMessage: 'Please design API contract and review responsive UI',
       settings: {
-        version: 1,
+        version: 2,
         skillsEnabled: true,
         maxInjectedSkills: 2,
         skills: [
@@ -18,6 +18,7 @@ describe('skills resolver', () => {
             enabled: true,
             mode: 'always',
             keywords: [],
+            linkedFiles: [],
           },
           {
             id: 'keyword-1',
@@ -27,6 +28,7 @@ describe('skills resolver', () => {
             enabled: true,
             mode: 'keyword',
             keywords: ['api', 'contract'],
+            linkedFiles: [],
           },
           {
             id: 'keyword-2',
@@ -36,6 +38,7 @@ describe('skills resolver', () => {
             enabled: true,
             mode: 'keyword',
             keywords: ['ui', 'responsive'],
+            linkedFiles: [],
           },
         ],
       },
@@ -52,7 +55,7 @@ describe('skills resolver', () => {
     const result = buildSkillsGuidance({
       userMessage: 'build ui',
       settings: {
-        version: 1,
+        version: 2,
         skillsEnabled: false,
         maxInjectedSkills: 3,
         skills: [],
@@ -66,7 +69,7 @@ describe('skills resolver', () => {
     const result = buildSkillsGuidance({
       userMessage: 'write docs',
       settings: {
-        version: 1,
+        version: 2,
         skillsEnabled: true,
         maxInjectedSkills: 3,
         skills: [
@@ -78,6 +81,7 @@ describe('skills resolver', () => {
             enabled: true,
             mode: 'keyword',
             keywords: ['api'],
+            linkedFiles: [],
           },
         ],
       },
@@ -86,31 +90,31 @@ describe('skills resolver', () => {
     expect(result).toBeNull();
   });
 
-  it('injects linked file context and script commands when provided', () => {
+  it('injects linked file content and no longer injects script commands', () => {
     const result = buildSkillsGuidance({
       userMessage: 'Please review architecture docs',
-      files: {
-        '/home/project/docs/SKILL.md': {
-          type: 'file',
-          content: 'Architecture decision summary',
-          isBinary: false,
-        },
-      },
       settings: {
-        version: 1,
+        version: 2,
         skillsEnabled: true,
         maxInjectedSkills: 3,
         skills: [
           {
-            id: 'with-resources',
+            id: 'with-files',
             name: 'Architecture reviewer',
             description: '',
             instruction: 'Use linked docs to ground decisions',
             enabled: true,
             mode: 'always',
             keywords: [],
-            linkedFilePaths: ['docs/SKILL.md'],
-            scriptCommands: ['pnpm typecheck'],
+            linkedFiles: [
+              {
+                id: 'arch-1',
+                name: 'docs/SKILL.md',
+                content: 'Architecture decision summary',
+                mimeType: 'text/markdown',
+                sizeBytes: 28,
+              },
+            ],
           },
         ],
       },
@@ -118,6 +122,52 @@ describe('skills resolver', () => {
 
     expect(result).not.toBeNull();
     expect(result!.guidance).toContain('File Context (docs/SKILL.md)');
-    expect(result!.guidance).toContain('Script Commands: pnpm typecheck');
+    expect(result!.guidance).toContain('Architecture decision summary');
+    expect(result!.guidance).not.toContain('Script Commands');
+  });
+
+  it('enforces linked file context truncation limit', () => {
+    const longContent = 'A'.repeat(3500);
+
+    const result = buildSkillsGuidance({
+      userMessage: 'please use docs',
+      settings: {
+        version: 2,
+        skillsEnabled: true,
+        maxInjectedSkills: 1,
+        skills: [
+          {
+            id: 'with-long-files',
+            name: 'Long context',
+            description: '',
+            instruction: 'Read files',
+            enabled: true,
+            mode: 'always',
+            keywords: [],
+            linkedFiles: [
+              {
+                id: 'f1',
+                name: 'one.md',
+                content: longContent,
+                mimeType: 'text/markdown',
+                sizeBytes: longContent.length,
+              },
+              {
+                id: 'f2',
+                name: 'two.md',
+                content: longContent,
+                mimeType: 'text/markdown',
+                sizeBytes: longContent.length,
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.guidance).toContain('File Context (one.md)');
+    expect(result!.guidance).toContain('File Context (two.md)');
+    expect(result!.guidance.length).toBeLessThan(5000);
   });
 });

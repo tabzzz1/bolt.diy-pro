@@ -1,22 +1,27 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useStore } from '@nanostores/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 import { Switch } from '~/components/ui/Switch';
+import { Tooltip } from '~/components/ui/Tooltip';
 import { useSkillsStore } from '~/lib/stores/skills';
-import type { SkillDefinition, SkillMode } from '~/lib/skills/schema';
+import { workbenchStore } from '~/lib/stores/workbench';
+import type { SkillDefinition, SkillLinkedFile, SkillMode } from '~/lib/skills/schema';
 import {
-  MAX_FILE_PATH_LENGTH,
+  inferSkillFileMimeType,
+  isSupportedSkillFile,
+  MAX_INJECTED_SKILLS,
   MAX_KEYWORD_LENGTH,
   MAX_KEYWORDS_PER_SKILL,
+  MAX_LINKED_FILE_BYTES,
   MAX_LINKED_FILES_PER_SKILL,
+  MAX_LINKED_FILES_TOTAL_BYTES,
   MAX_SKILL_DESCRIPTION_LENGTH,
   MAX_SKILL_INSTRUCTION_LENGTH,
   MAX_SKILL_NAME_LENGTH,
-  MAX_INJECTED_SKILLS,
-  MAX_SCRIPT_COMMAND_LENGTH,
-  MAX_SCRIPT_COMMANDS_PER_SKILL,
   normalizeSkillsSettings,
+  SUPPORTED_SKILL_FILE_EXTENSIONS,
 } from '~/lib/skills/schema';
 
 type SkillDraft = {
@@ -26,8 +31,7 @@ type SkillDraft = {
   instruction: string;
   mode: SkillMode;
   keywords: string[];
-  linkedFilePaths: string[];
-  scriptCommands: string[];
+  linkedFiles: SkillLinkedFile[];
   enabled: boolean;
 };
 
@@ -37,8 +41,7 @@ const EMPTY_DRAFT: SkillDraft = {
   instruction: '',
   mode: 'always',
   keywords: [],
-  linkedFilePaths: [],
-  scriptCommands: [],
+  linkedFiles: [],
   enabled: true,
 };
 
@@ -50,8 +53,7 @@ const SKILL_TEMPLATES: Omit<SkillDraft, 'id' | 'enabled'>[] = [
       'Review proposed code changes with a bug-first mindset. Prioritize correctness, regression risk, and missing tests. Keep suggestions concise and actionable.',
     mode: 'always',
     keywords: [],
-    linkedFilePaths: ['README.md'],
-    scriptCommands: ['pnpm test'],
+    linkedFiles: [],
   },
   {
     name: 'API architect',
@@ -60,8 +62,7 @@ const SKILL_TEMPLATES: Omit<SkillDraft, 'id' | 'enabled'>[] = [
       'When discussing APIs, explicitly call out compatibility impact, migration cost, and interface clarity. Prefer simple, versionable contracts.',
     mode: 'keyword',
     keywords: ['api', 'endpoint', 'contract', 'schema'],
-    linkedFilePaths: [],
-    scriptCommands: [],
+    linkedFiles: [],
   },
   {
     name: 'Frontend quality gate',
@@ -70,13 +71,38 @@ const SKILL_TEMPLATES: Omit<SkillDraft, 'id' | 'enabled'>[] = [
       'For UI tasks, check accessibility, mobile behavior, spacing consistency, and interaction feedback. Surface issues clearly before proposing polish.',
     mode: 'keyword',
     keywords: ['ui', 'frontend', 'responsive', 'accessibility'],
-    linkedFilePaths: [],
-    scriptCommands: ['pnpm typecheck'],
+    linkedFiles: [],
   },
 ];
 
 function createSkillId() {
   return `skill-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createLinkedFileId(fileName: string, index: number) {
+  const normalized = fileName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+
+  return `linked-${normalized || 'file'}-${Date.now().toString(36)}-${index}`;
+}
+
+function toByteLength(value: string) {
+  return new TextEncoder().encode(value).byteLength;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function validateDraft(draft: SkillDraft) {
@@ -95,7 +121,7 @@ function validateDraft(draft: SkillDraft) {
   }
 
   if (draft.description.trim().length > MAX_SKILL_DESCRIPTION_LENGTH) {
-    errors.push('descriptionTooLong');
+    errors.push('useCaseTooLong');
   }
 
   if (draft.mode === 'keyword' && draft.keywords.length === 0) {
@@ -110,20 +136,18 @@ function validateDraft(draft: SkillDraft) {
     errors.push('keywordTooLong');
   }
 
-  if (draft.linkedFilePaths.length > MAX_LINKED_FILES_PER_SKILL) {
+  if (draft.linkedFiles.length > MAX_LINKED_FILES_PER_SKILL) {
     errors.push('linkedFileLimitExceeded');
   }
 
-  if (draft.linkedFilePaths.some((path) => path.length > MAX_FILE_PATH_LENGTH)) {
-    errors.push('linkedFilePathTooLong');
+  if (draft.linkedFiles.some((file) => file.sizeBytes > MAX_LINKED_FILE_BYTES)) {
+    errors.push('linkedFileTooLarge');
   }
 
-  if (draft.scriptCommands.length > MAX_SCRIPT_COMMANDS_PER_SKILL) {
-    errors.push('scriptCommandLimitExceeded');
-  }
+  const totalBytes = draft.linkedFiles.reduce((sum, file) => sum + file.sizeBytes, 0);
 
-  if (draft.scriptCommands.some((command) => command.length > MAX_SCRIPT_COMMAND_LENGTH)) {
-    errors.push('scriptCommandTooLong');
+  if (totalBytes > MAX_LINKED_FILES_TOTAL_BYTES) {
+    errors.push('linkedFilesTotalTooLarge');
   }
 
   return errors;
@@ -137,8 +161,7 @@ function toSkillDefinition(draft: SkillDraft): SkillDefinition {
     instruction: draft.instruction.trim(),
     mode: draft.mode,
     keywords: draft.keywords,
-    linkedFilePaths: draft.linkedFilePaths,
-    scriptCommands: draft.scriptCommands,
+    linkedFiles: draft.linkedFiles,
     enabled: draft.enabled,
   };
 }
@@ -147,10 +170,25 @@ function normalizeKeyword(value: string): string {
   return value.trim().slice(0, MAX_KEYWORD_LENGTH);
 }
 
+function FieldHelp({ content, ariaLabel }: { content: string; ariaLabel: string }) {
+  return (
+    <Tooltip content={content} side="right" align="center">
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        className="inline-flex h-[18px] w-[18px] shrink-0 translate-y-px items-center justify-center bg-transparent p-0 text-bolt-elements-textSecondary transition-colors hover:bg-transparent hover:text-bolt-elements-textPrimary focus-visible:outline-none"
+      >
+        <div className="i-ph:question text-sm" />
+      </button>
+    </Tooltip>
+  );
+}
+
 export default function SkillsTab() {
   const { t } = useTranslation('settings');
-  const isInitialized = useSkillsStore((state) => state.isInitialized);
+  const workspaceFiles = useStore(workbenchStore.files);
   const settings = useSkillsStore((state) => state.settings);
+  const migrationReport = useSkillsStore((state) => state.migrationReport);
   const initialize = useSkillsStore((state) => state.initialize);
   const updateSettings = useSkillsStore((state) => state.updateSettings);
   const upsertSkill = useSkillsStore((state) => state.upsertSkill);
@@ -158,15 +196,27 @@ export default function SkillsTab() {
 
   const [draft, setDraft] = useState<SkillDraft>(EMPTY_DRAFT);
   const [keywordInput, setKeywordInput] = useState('');
-  const [linkedFileInput, setLinkedFileInput] = useState('');
-  const [scriptCommandInput, setScriptCommandInput] = useState('');
   const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
+  const migrationNoticeShown = useRef(false);
+  const linkedFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!isInitialized) {
-      initialize();
+    initialize(workspaceFiles);
+  }, [initialize, workspaceFiles]);
+
+  useEffect(() => {
+    if (!migrationReport || migrationNoticeShown.current) {
+      return;
     }
-  }, [isInitialized, initialize]);
+
+    migrationNoticeShown.current = true;
+    toast.info(
+      t('skillsTab.legacyMigrationResult', {
+        migrated: migrationReport.migrated,
+        skipped: migrationReport.skipped,
+      }),
+    );
+  }, [migrationReport, t]);
 
   const draftErrors = useMemo(() => validateDraft(draft), [draft]);
   const canSaveDraft = draftErrors.length === 0;
@@ -186,8 +236,6 @@ export default function SkillsTab() {
       setEditingSkillId(null);
       setDraft(EMPTY_DRAFT);
       setKeywordInput('');
-      setLinkedFileInput('');
-      setScriptCommandInput('');
     }
 
     toast.success(t('skillsTab.skillDeleted'));
@@ -202,21 +250,20 @@ export default function SkillsTab() {
       instruction: skill.instruction,
       mode: skill.mode,
       keywords: skill.keywords,
-      linkedFilePaths: skill.linkedFilePaths,
-      scriptCommands: skill.scriptCommands,
+      linkedFiles: skill.linkedFiles,
       enabled: skill.enabled,
     });
     setKeywordInput('');
-    setLinkedFileInput('');
-    setScriptCommandInput('');
   };
 
   const handleCancelEdit = () => {
     setEditingSkillId(null);
     setDraft(EMPTY_DRAFT);
     setKeywordInput('');
-    setLinkedFileInput('');
-    setScriptCommandInput('');
+
+    if (linkedFileInputRef.current) {
+      linkedFileInputRef.current.value = '';
+    }
   };
 
   const handleSaveSkill = () => {
@@ -263,62 +310,119 @@ export default function SkillsTab() {
       enabled: true,
       mode: template.mode,
       keywords: template.keywords,
-      linkedFilePaths: template.linkedFilePaths,
-      scriptCommands: template.scriptCommands,
+      linkedFiles: template.linkedFiles,
     });
     toast.success(t('skillsTab.templateAdded'));
   };
 
-  const handleAddLinkedFilePath = (value: string) => {
-    const nextPath = value.trim().replace(/\\/g, '/').replace(/^\.\//, '').slice(0, MAX_FILE_PATH_LENGTH);
-
-    if (!nextPath) {
+  const handleUploadLinkedFiles = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) {
       return;
     }
 
-    if (draft.linkedFilePaths.length >= MAX_LINKED_FILES_PER_SKILL) {
-      toast.error(t('skillsTab.linkedFileLimitExceeded'));
-      return;
-    }
+    const selectedFiles = Array.from(fileList);
 
-    if (draft.linkedFilePaths.includes(nextPath)) {
-      setLinkedFileInput('');
-      return;
+    const nextFiles = [...draft.linkedFiles];
+    let totalBytes = nextFiles.reduce((sum, file) => sum + file.sizeBytes, 0);
+    const seen = new Set(nextFiles.map((file) => `${file.name.toLowerCase()}::${file.sizeBytes}`));
+
+    for (const [index, file] of selectedFiles.entries()) {
+      if (nextFiles.length >= MAX_LINKED_FILES_PER_SKILL) {
+        toast.error(t('skillsTab.linkedFileLimitExceeded'));
+        break;
+      }
+
+      const guessedMimeType = inferSkillFileMimeType(file.name);
+      const mimeType = file.type || guessedMimeType;
+
+      if (!isSupportedSkillFile(file.name, mimeType)) {
+        toast.error(t('skillsTab.unsupportedFileType', { fileName: file.name }));
+        continue;
+      }
+
+      try {
+        const buffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+
+        if (bytes.includes(0)) {
+          toast.error(t('skillsTab.unsupportedFileType', { fileName: file.name }));
+          continue;
+        }
+
+        const rawContent = new TextDecoder('utf-8').decode(bytes);
+        const content = rawContent.replace(/\u0000/g, '');
+        const sizeBytes = toByteLength(content);
+
+        if (sizeBytes <= 0 || sizeBytes > MAX_LINKED_FILE_BYTES) {
+          toast.error(
+            t('skillsTab.linkedFileTooLarge', {
+              fileName: file.name,
+              maxSize: formatBytes(MAX_LINKED_FILE_BYTES),
+            }),
+          );
+          continue;
+        }
+
+        if (totalBytes + sizeBytes > MAX_LINKED_FILES_TOTAL_BYTES) {
+          toast.error(
+            t('skillsTab.linkedFilesTotalTooLarge', {
+              maxSize: formatBytes(MAX_LINKED_FILES_TOTAL_BYTES),
+            }),
+          );
+          continue;
+        }
+
+        const dedupeKey = `${file.name.toLowerCase()}::${sizeBytes}`;
+
+        if (seen.has(dedupeKey)) {
+          continue;
+        }
+
+        nextFiles.push({
+          id: createLinkedFileId(file.name, index),
+          name: file.name,
+          content,
+          mimeType,
+          sizeBytes,
+        });
+
+        totalBytes += sizeBytes;
+        seen.add(dedupeKey);
+      } catch {
+        toast.error(t('skillsTab.linkedFileReadError', { fileName: file.name }));
+      }
     }
 
     setDraft((prev) => ({
       ...prev,
-      linkedFilePaths: [...prev.linkedFilePaths, nextPath],
+      linkedFiles: nextFiles,
     }));
-    setLinkedFileInput('');
+
+    if (linkedFileInputRef.current) {
+      linkedFileInputRef.current.value = '';
+    }
   };
 
-  const handleAddScriptCommand = (value: string) => {
-    const nextCommand = value.trim().slice(0, MAX_SCRIPT_COMMAND_LENGTH);
-
-    if (!nextCommand) {
-      return;
-    }
-
-    if (draft.scriptCommands.length >= MAX_SCRIPT_COMMANDS_PER_SKILL) {
-      toast.error(t('skillsTab.scriptCommandLimitExceeded'));
-      return;
-    }
-
-    if (draft.scriptCommands.includes(nextCommand)) {
-      setScriptCommandInput('');
-      return;
-    }
-
+  const removeLinkedFile = (fileId: string) => {
     setDraft((prev) => ({
       ...prev,
-      scriptCommands: [...prev.scriptCommands, nextCommand],
+      linkedFiles: prev.linkedFiles.filter((file) => file.id !== fileId),
     }));
-    setScriptCommandInput('');
   };
 
   return (
     <div className="space-y-6">
+      <input
+        ref={linkedFileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        accept={SUPPORTED_SKILL_FILE_EXTENSIONS.map((ext) => `.${ext}`).join(',')}
+        onChange={(event) => {
+          void handleUploadLinkedFiles(event.target.files);
+        }}
+      />
+
       <section className="rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -398,7 +502,13 @@ export default function SkillsTab() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-bolt-elements-textPrimary">{t('skillsTab.description')}</label>
+            <label className="inline-flex items-center gap-1 text-sm font-medium text-bolt-elements-textPrimary">
+              {t('skillsTab.useCase')}
+              <FieldHelp
+                content={t('skillsTab.useCaseHelp')}
+                ariaLabel={t('skillsTab.useCaseHelp')}
+              />
+            </label>
             <input
               value={draft.description}
               maxLength={MAX_SKILL_DESCRIPTION_LENGTH}
@@ -407,7 +517,7 @@ export default function SkillsTab() {
                 'mt-1 w-full rounded-lg border border-bolt-elements-borderColor bg-white px-3 py-2 text-sm text-bolt-elements-textPrimary dark:bg-bolt-elements-background-depth-3',
                 'focus:outline-none focus:ring-2 focus:ring-blue-500/20',
               )}
-              placeholder={t('skillsTab.descriptionPlaceholder')}
+              placeholder={t('skillsTab.useCasePlaceholder')}
             />
           </div>
 
@@ -441,8 +551,14 @@ export default function SkillsTab() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-bolt-elements-textPrimary">{t('skillsTab.keywords')}</label>
-            <div className="mt-1 flex gap-2">
+            <label className="inline-flex items-center gap-1 text-sm font-medium text-bolt-elements-textPrimary">
+              {t('skillsTab.triggerKeywords')}
+              <FieldHelp
+                content={t('skillsTab.triggerKeywordsHelp')}
+                ariaLabel={t('skillsTab.triggerKeywordsHelp')}
+              />
+            </label>
+            <div className="mt-1 flex items-stretch gap-2">
               <input
                 value={keywordInput}
                 onChange={(event) => setKeywordInput(event.target.value)}
@@ -456,13 +572,13 @@ export default function SkillsTab() {
                   'w-full rounded-lg border border-bolt-elements-borderColor bg-white px-3 py-2 text-sm text-bolt-elements-textPrimary dark:bg-bolt-elements-background-depth-3',
                   'focus:outline-none focus:ring-2 focus:ring-blue-500/20',
                 )}
-                placeholder={t('skillsTab.keywordsPlaceholder')}
+                placeholder={t('skillsTab.triggerKeywordsPlaceholder')}
               />
               <button
                 type="button"
                 onClick={() => handleAddKeyword(keywordInput)}
                 className={classNames(
-                  'rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textPrimary',
+                  'min-w-[108px] whitespace-nowrap rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-2 text-sm text-bolt-elements-textPrimary',
                   'hover:bg-bolt-elements-background-depth-3',
                 )}
               >
@@ -493,98 +609,37 @@ export default function SkillsTab() {
 
           <div>
             <label className="text-sm font-medium text-bolt-elements-textPrimary">{t('skillsTab.linkedFiles')}</label>
-            <div className="mt-1 flex gap-2">
-              <input
-                value={linkedFileInput}
-                onChange={(event) => setLinkedFileInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    handleAddLinkedFilePath(linkedFileInput);
-                  }
-                }}
-                className={classNames(
-                  'w-full rounded-lg border border-bolt-elements-borderColor bg-white px-3 py-2 text-sm text-bolt-elements-textPrimary dark:bg-bolt-elements-background-depth-3',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500/20',
-                )}
-                placeholder={t('skillsTab.linkedFilesPlaceholder')}
-              />
+            <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+              {t('skillsTab.linkedFilesHint', {
+                maxCount: MAX_LINKED_FILES_PER_SKILL,
+                perFile: formatBytes(MAX_LINKED_FILE_BYTES),
+                total: formatBytes(MAX_LINKED_FILES_TOTAL_BYTES),
+              })}
+            </p>
+            <div className="mt-2">
               <button
                 type="button"
-                onClick={() => handleAddLinkedFilePath(linkedFileInput)}
+                onClick={() => linkedFileInputRef.current?.click()}
                 className={classNames(
                   'rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textPrimary',
                   'hover:bg-bolt-elements-background-depth-3',
                 )}
               >
-                {t('skillsTab.addLinkedFile')}
+                {t('skillsTab.uploadLinkedFiles')}
               </button>
             </div>
-            {draft.linkedFilePaths.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {draft.linkedFilePaths.map((filePath) => (
-                  <button
-                    key={filePath}
-                    type="button"
-                    onClick={() =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        linkedFilePaths: prev.linkedFilePaths.filter((item) => item !== filePath),
-                      }))
-                    }
-                    className="rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2.5 py-1 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
-                  >
-                    {filePath} ×
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
 
-          <div>
-            <label className="text-sm font-medium text-bolt-elements-textPrimary">{t('skillsTab.scriptCommands')}</label>
-            <div className="mt-1 flex gap-2">
-              <input
-                value={scriptCommandInput}
-                onChange={(event) => setScriptCommandInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    handleAddScriptCommand(scriptCommandInput);
-                  }
-                }}
-                className={classNames(
-                  'w-full rounded-lg border border-bolt-elements-borderColor bg-white px-3 py-2 text-sm text-bolt-elements-textPrimary dark:bg-bolt-elements-background-depth-3',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500/20',
-                )}
-                placeholder={t('skillsTab.scriptCommandsPlaceholder')}
-              />
-              <button
-                type="button"
-                onClick={() => handleAddScriptCommand(scriptCommandInput)}
-                className={classNames(
-                  'rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textPrimary',
-                  'hover:bg-bolt-elements-background-depth-3',
-                )}
-              >
-                {t('skillsTab.addScriptCommand')}
-              </button>
-            </div>
-            {draft.scriptCommands.length > 0 && (
+            {draft.linkedFiles.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
-                {draft.scriptCommands.map((command) => (
+                {draft.linkedFiles.map((file) => (
                   <button
-                    key={command}
+                    key={file.id}
                     type="button"
-                    onClick={() =>
-                      setDraft((prev) => ({
-                        ...prev,
-                        scriptCommands: prev.scriptCommands.filter((item) => item !== command),
-                      }))
-                    }
+                    onClick={() => removeLinkedFile(file.id)}
                     className="rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2.5 py-1 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
+                    title={file.name}
                   >
-                    {command} ×
+                    {file.name} ({formatBytes(file.sizeBytes)}) ×
                   </button>
                 ))}
               </div>
@@ -647,17 +702,12 @@ export default function SkillsTab() {
                     {skill.description && <p className="mt-1 text-xs text-bolt-elements-textSecondary">{skill.description}</p>}
                     {skill.keywords.length > 0 && (
                       <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-                        {t('skillsTab.keywordsLabel')}: {skill.keywords.join(', ')}
+                        {t('skillsTab.triggerKeywordsLabel')}: {skill.keywords.join(', ')}
                       </p>
                     )}
-                    {skill.linkedFilePaths.length > 0 && (
+                    {skill.linkedFiles.length > 0 && (
                       <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-                        {t('skillsTab.linkedFilesLabel')}: {skill.linkedFilePaths.join(', ')}
-                      </p>
-                    )}
-                    {skill.scriptCommands.length > 0 && (
-                      <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-                        {t('skillsTab.scriptCommandsLabel')}: {skill.scriptCommands.join(' | ')}
+                        {t('skillsTab.linkedFilesLabel')}: {skill.linkedFiles.map((file) => file.name).join(', ')}
                       </p>
                     )}
                   </div>

@@ -337,7 +337,6 @@ export async function streamText(props: {
   const skillsGuidance = buildSkillsGuidance({
     settings: props.skills,
     userMessage: lastUserMessage?.content || '',
-    files: files as any,
   })?.guidance;
   const effectiveSystemPrompt = buildEffectiveSystemPrompt({
     baseSystemPrompt,

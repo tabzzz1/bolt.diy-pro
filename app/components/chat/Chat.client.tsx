@@ -119,14 +119,11 @@ export const ChatImpl = memo(
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
     const skillsSettings = useSkillsStore((state) => state.settings);
-    const isSkillsInitialized = useSkillsStore((state) => state.isInitialized);
     const initializeSkills = useSkillsStore((state) => state.initialize);
 
     useEffect(() => {
-      if (!isSkillsInitialized) {
-        initializeSkills();
-      }
-    }, [initializeSkills, isSkillsInitialized]);
+      initializeSkills(files);
+    }, [initializeSkills, files]);
 
     const {
       messages,

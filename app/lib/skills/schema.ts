@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const SKILLS_SETTINGS_VERSION = 1;
+export const SKILLS_SETTINGS_VERSION = 2;
 export const MAX_SKILLS = 20;
 export const MAX_INJECTED_SKILLS = 10;
 export const DEFAULT_MAX_INJECTED_SKILLS = 3;
@@ -9,13 +9,46 @@ export const MAX_SKILL_DESCRIPTION_LENGTH = 300;
 export const MAX_SKILL_INSTRUCTION_LENGTH = 1200;
 export const MAX_KEYWORDS_PER_SKILL = 20;
 export const MAX_KEYWORD_LENGTH = 60;
-export const MAX_LINKED_FILES_PER_SKILL = 8;
-export const MAX_FILE_PATH_LENGTH = 260;
-export const MAX_SCRIPT_COMMANDS_PER_SKILL = 8;
-export const MAX_SCRIPT_COMMAND_LENGTH = 200;
+export const MAX_LINKED_FILES_PER_SKILL = 5;
+export const MAX_LINKED_FILE_NAME_LENGTH = 120;
+export const MAX_LINKED_FILE_BYTES = 80 * 1024;
+export const MAX_LINKED_FILES_TOTAL_BYTES = 250 * 1024;
+
+export const SUPPORTED_SKILL_FILE_EXTENSIONS = [
+  'md',
+  'js',
+  'ts',
+  'tsx',
+  'py',
+  'json',
+  'yaml',
+  'yml',
+  'txt',
+  'sh',
+] as const;
+
+const SUPPORTED_SKILL_FILE_EXTENSIONS_SET = new Set<string>(SUPPORTED_SKILL_FILE_EXTENSIONS);
+const SUPPORTED_TEXTUAL_MIME_TYPES = new Set<string>([
+  'application/json',
+  'application/x-javascript',
+  'application/javascript',
+  'application/x-sh',
+  'application/x-python-code',
+  'application/x-yaml',
+  'application/yaml',
+]);
 
 export const skillModeSchema = z.enum(['always', 'keyword']);
 export type SkillMode = z.infer<typeof skillModeSchema>;
+
+export const skillLinkedFileSchema = z.object({
+  id: z.string().min(1).max(120),
+  name: z.string().min(1).max(MAX_LINKED_FILE_NAME_LENGTH),
+  content: z.string().min(1),
+  mimeType: z.string().min(1).max(120),
+  sizeBytes: z.number().int().positive().max(MAX_LINKED_FILE_BYTES),
+});
+export type SkillLinkedFile = z.infer<typeof skillLinkedFileSchema>;
 
 export const skillSchema = z.object({
   id: z.string().min(1).max(120),
@@ -25,8 +58,7 @@ export const skillSchema = z.object({
   enabled: z.boolean(),
   mode: skillModeSchema,
   keywords: z.array(z.string().min(1).max(MAX_KEYWORD_LENGTH)).max(MAX_KEYWORDS_PER_SKILL),
-  linkedFilePaths: z.array(z.string().min(1).max(MAX_FILE_PATH_LENGTH)).max(MAX_LINKED_FILES_PER_SKILL),
-  scriptCommands: z.array(z.string().min(1).max(MAX_SCRIPT_COMMAND_LENGTH)).max(MAX_SCRIPT_COMMANDS_PER_SKILL),
+  linkedFiles: z.array(skillLinkedFileSchema).max(MAX_LINKED_FILES_PER_SKILL),
 });
 export type SkillDefinition = z.infer<typeof skillSchema>;
 
@@ -53,29 +85,22 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+function utf8ByteLength(value: string): number {
+  return new TextEncoder().encode(value).byteLength;
+}
+
 function sanitizeText(value: unknown, maxLength: number): string {
   const text = asString(value).replace(/\u0000/g, '').trim();
   return text.slice(0, maxLength);
 }
 
+function sanitizeContent(value: unknown): string {
+  return asString(value).replace(/\u0000/g, '');
+}
+
 function sanitizeKeyword(value: unknown): string | null {
   const keyword = sanitizeText(value, MAX_KEYWORD_LENGTH);
   return keyword.length > 0 ? keyword : null;
-}
-
-function sanitizeFilePath(value: unknown): string | null {
-  const path = sanitizeText(value, MAX_FILE_PATH_LENGTH).replace(/\\/g, '/');
-
-  if (!path) {
-    return null;
-  }
-
-  return path.startsWith('./') ? path.slice(2) : path;
-}
-
-function sanitizeScriptCommand(value: unknown): string | null {
-  const command = sanitizeText(value, MAX_SCRIPT_COMMAND_LENGTH);
-  return command.length > 0 ? command : null;
 }
 
 function parseKeywords(value: unknown): string[] {
@@ -90,12 +115,12 @@ function parseKeywords(value: unknown): string[] {
     .filter((item): item is string => Boolean(item))
     .slice(0, MAX_KEYWORDS_PER_SKILL);
 
-  // de-duplicate case-insensitively while preserving first value
   const deduped: string[] = [];
   const seen = new Set<string>();
 
   for (const keyword of normalized) {
     const lower = keyword.toLowerCase();
+
     if (seen.has(lower)) {
       continue;
     }
@@ -107,34 +132,127 @@ function parseKeywords(value: unknown): string[] {
   return deduped;
 }
 
-function parseLinkedFilePaths(value: unknown): string[] {
-  const source = Array.isArray(value)
-    ? value
-    : typeof value === 'string'
-      ? value.split('\n').map((x) => x.trim())
-      : [];
-
-  const normalized = source
-    .map((item) => sanitizeFilePath(item))
-    .filter((item): item is string => Boolean(item))
-    .slice(0, MAX_LINKED_FILES_PER_SKILL);
-
-  return [...new Set(normalized)];
+function extensionOf(fileName: string): string {
+  const parts = fileName.toLowerCase().split('.');
+  return parts.length > 1 ? parts.pop() || '' : '';
 }
 
-function parseScriptCommands(value: unknown): string[] {
-  const source = Array.isArray(value)
-    ? value
-    : typeof value === 'string'
-      ? value.split('\n').map((x) => x.trim())
-      : [];
+export function inferSkillFileMimeType(fileName: string): string {
+  const extension = extensionOf(fileName);
 
-  const normalized = source
-    .map((item) => sanitizeScriptCommand(item))
-    .filter((item): item is string => Boolean(item))
-    .slice(0, MAX_SCRIPT_COMMANDS_PER_SKILL);
+  if (extension === 'md') {
+    return 'text/markdown';
+  }
 
-  return [...new Set(normalized)];
+  if (extension === 'json') {
+    return 'application/json';
+  }
+
+  if (extension === 'yaml' || extension === 'yml') {
+    return 'application/x-yaml';
+  }
+
+  if (extension === 'py') {
+    return 'text/x-python';
+  }
+
+  if (extension === 'sh') {
+    return 'application/x-sh';
+  }
+
+  return 'text/plain';
+}
+
+export function isSupportedSkillFile(fileName: string, mimeType?: string): boolean {
+  const extension = extensionOf(fileName);
+
+  if (SUPPORTED_SKILL_FILE_EXTENSIONS_SET.has(extension)) {
+    return true;
+  }
+
+  if (!mimeType) {
+    return false;
+  }
+
+  const normalizedMimeType = mimeType.toLowerCase();
+
+  return normalizedMimeType.startsWith('text/') || SUPPORTED_TEXTUAL_MIME_TYPES.has(normalizedMimeType);
+}
+
+function parseLinkedFiles(value: unknown): SkillLinkedFile[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const linkedFiles: SkillLinkedFile[] = [];
+  const seen = new Set<string>();
+  let totalBytes = 0;
+
+  for (const [index, item] of value.entries()) {
+    if (!item || typeof item !== 'object') {
+      continue;
+    }
+
+    const record = item as Record<string, unknown>;
+    const name = sanitizeText(record.name, MAX_LINKED_FILE_NAME_LENGTH);
+
+    if (!name) {
+      continue;
+    }
+
+    const content = sanitizeContent(record.content);
+
+    if (!content) {
+      continue;
+    }
+
+    const mimeType = sanitizeText(record.mimeType, 120) || inferSkillFileMimeType(name);
+
+    if (!isSupportedSkillFile(name, mimeType)) {
+      continue;
+    }
+
+    const computedSize = utf8ByteLength(content);
+
+    if (computedSize <= 0 || computedSize > MAX_LINKED_FILE_BYTES) {
+      continue;
+    }
+
+    if (totalBytes + computedSize > MAX_LINKED_FILES_TOTAL_BYTES) {
+      break;
+    }
+
+    const key = `${name.toLowerCase()}::${computedSize}`;
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+
+    const linkedFile: SkillLinkedFile = {
+      id: sanitizeText(record.id, 120) || `linked-file-${index + 1}`,
+      name,
+      content,
+      mimeType,
+      sizeBytes: computedSize,
+    };
+
+    const parsed = skillLinkedFileSchema.safeParse(linkedFile);
+
+    if (!parsed.success) {
+      continue;
+    }
+
+    linkedFiles.push(parsed.data);
+    totalBytes += computedSize;
+
+    if (linkedFiles.length >= MAX_LINKED_FILES_PER_SKILL) {
+      break;
+    }
+  }
+
+  return linkedFiles;
 }
 
 function parseSkillMode(value: unknown): SkillMode {
@@ -162,8 +280,7 @@ function normalizeSkill(raw: unknown, index: number): SkillDefinition | null {
     enabled: typeof record.enabled === 'boolean' ? record.enabled : true,
     mode: parseSkillMode(record.mode),
     keywords: parseKeywords(record.keywords),
-    linkedFilePaths: parseLinkedFilePaths(record.linkedFilePaths),
-    scriptCommands: parseScriptCommands(record.scriptCommands),
+    linkedFiles: parseLinkedFiles(record.linkedFiles ?? record.linkedFilePaths),
   });
 
   return parsed.success ? parsed.data : null;
