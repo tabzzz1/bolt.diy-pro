@@ -10,6 +10,8 @@ import { createScopedLogger } from '~/utils/logger';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
 import type { DesignScheme } from '~/types/design-scheme';
+import { buildSkillsGuidance } from '~/lib/skills/resolver';
+import type { SkillsSettings } from '~/lib/skills/schema';
 
 export type Messages = Message[];
 
@@ -25,6 +27,71 @@ export interface StreamingOptions extends Omit<Parameters<typeof _streamText>[0]
 }
 
 const logger = createScopedLogger('stream-text');
+const REASONING_UNSUPPORTED_OPTION_KEYS = [
+  'temperature',
+  'topP',
+  'presencePenalty',
+  'frequencyPenalty',
+  'logprobs',
+  'topLogprobs',
+  'logitBias',
+];
+const ALWAYS_STRIPPED_OPTION_KEYS = ['skills'];
+const MCP_TOOLS_GUIDANCE = `<mcp_tools_guidance>
+  CRITICAL: You have access to external MCP tools. Follow these rules strictly:
+
+  ONLY call an MCP tool when ALL of the following are true:
+  - The user's request explicitly requires real-time data, external API access, or information that is genuinely not part of your built-in knowledge
+  - The task cannot be completed without fetching that external information
+
+  NEVER call MCP tools for:
+  - Writing or generating any code (HTML, CSS, JavaScript, TypeScript, etc.)
+  - General coding questions or explanations
+  - Answering conceptual or factual questions you already know the answer to
+  - Any task you can complete directly with your existing knowledge
+
+  Default behavior: answer directly without calling any MCP tool unless the criteria above are clearly met.
+</mcp_tools_guidance>`;
+
+export function filterStreamingOptions(options: StreamingOptions | undefined, isReasoning: boolean) {
+  const source = (options || {}) as Record<string, unknown>;
+
+  return Object.fromEntries(
+    Object.entries(source).filter(([key]) => {
+      if (ALWAYS_STRIPPED_OPTION_KEYS.includes(key)) {
+        return false;
+      }
+
+      if (isReasoning && REASONING_UNSUPPORTED_OPTION_KEYS.includes(key)) {
+        return false;
+      }
+
+      return true;
+    }),
+  );
+}
+
+export function buildEffectiveSystemPrompt({
+  baseSystemPrompt,
+  hasMCPTools,
+  skillsGuidance,
+}: {
+  baseSystemPrompt: string;
+  hasMCPTools: boolean;
+  skillsGuidance?: string;
+}) {
+  const sections = [baseSystemPrompt];
+
+  if (skillsGuidance) {
+    sections.push(skillsGuidance);
+  }
+
+  if (hasMCPTools) {
+    sections.push(MCP_TOOLS_GUIDANCE);
+  }
+
+  return sections.join('\n\n');
+}
 
 function getCompletionTokenLimit(modelDetails: any): number {
   // 1. If model specifies completion tokens, use that
@@ -65,6 +132,7 @@ export async function streamText(props: {
   messageSliceId?: number;
   chatMode?: 'discuss' | 'build';
   designScheme?: DesignScheme;
+  skills?: SkillsSettings;
 }) {
   const {
     messages,
@@ -238,23 +306,7 @@ export async function streamText(props: {
   const tokenParams = isReasoning ? { maxCompletionTokens: safeMaxTokens } : { maxTokens: safeMaxTokens };
 
   // Filter out unsupported parameters for reasoning models
-  const filteredOptions =
-    isReasoning && options
-      ? Object.fromEntries(
-          Object.entries(options).filter(
-            ([key]) =>
-              ![
-                'temperature',
-                'topP',
-                'presencePenalty',
-                'frequencyPenalty',
-                'logprobs',
-                'topLogprobs',
-                'logitBias',
-              ].includes(key),
-          ),
-        )
-      : options || {};
+  const filteredOptions = filterStreamingOptions(options, isReasoning);
 
   // DEBUG: Log filtered options
   logger.info(
@@ -281,25 +333,17 @@ export async function streamText(props: {
   const hasMCPTools = toolsInOptions && Object.keys(toolsInOptions).length > 0;
 
   const baseSystemPrompt = chatMode === 'build' ? systemPrompt : discussPrompt();
-  const effectiveSystemPrompt = hasMCPTools
-    ? `${baseSystemPrompt}
-
-<mcp_tools_guidance>
-  CRITICAL: You have access to external MCP tools. Follow these rules strictly:
-
-  ONLY call an MCP tool when ALL of the following are true:
-  - The user's request explicitly requires real-time data, external API access, or information that is genuinely not part of your built-in knowledge
-  - The task cannot be completed without fetching that external information
-
-  NEVER call MCP tools for:
-  - Writing or generating any code (HTML, CSS, JavaScript, TypeScript, etc.)
-  - General coding questions or explanations
-  - Answering conceptual or factual questions you already know the answer to
-  - Any task you can complete directly with your existing knowledge
-
-  Default behavior: answer directly without calling any MCP tool unless the criteria above are clearly met.
-</mcp_tools_guidance>`
-    : baseSystemPrompt;
+  const lastUserMessage = [...processedMessages].reverse().find((message) => message.role === 'user');
+  const skillsGuidance = buildSkillsGuidance({
+    settings: props.skills,
+    userMessage: lastUserMessage?.content || '',
+    files: files as any,
+  })?.guidance;
+  const effectiveSystemPrompt = buildEffectiveSystemPrompt({
+    baseSystemPrompt,
+    hasMCPTools,
+    skillsGuidance,
+  });
 
   const streamParams = {
     model: provider.getModelInstance({

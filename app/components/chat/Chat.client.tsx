@@ -28,6 +28,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import type { TextUIPart, FileUIPart, Attachment } from '@ai-sdk/ui-utils';
 import { useMCPStore } from '~/lib/stores/mcp';
 import type { LlmErrorAlertType } from '~/types/actions';
+import { useSkillsStore } from '~/lib/stores/skills';
 
 const logger = createScopedLogger('Chat');
 
@@ -117,6 +118,15 @@ export const ChatImpl = memo(
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
+    const skillsSettings = useSkillsStore((state) => state.settings);
+    const isSkillsInitialized = useSkillsStore((state) => state.isInitialized);
+    const initializeSkills = useSkillsStore((state) => state.initialize);
+
+    useEffect(() => {
+      if (!isSkillsInitialized) {
+        initializeSkills();
+      }
+    }, [initializeSkills, isSkillsInitialized]);
 
     const {
       messages,
@@ -150,6 +160,7 @@ export const ChatImpl = memo(
           },
         },
         maxLLMSteps: mcpSettings.maxLLMSteps,
+        skills: skillsSettings,
       },
       sendExtraMessageFields: true,
       onError: (e) => {

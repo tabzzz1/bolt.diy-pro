@@ -454,4 +454,17 @@ export class MCPService {
   get toolsWithoutExecute() {
     return this._toolsWithoutExecute;
   }
+
+  /**
+   * Reserved for future hard-enforcement policy (e.g. skills-driven allow-list).
+   * Current phase keeps prompt-level guidance only.
+   */
+  getToolsWithoutExecuteFiltered(allowedToolNames?: string[]) {
+    if (!allowedToolNames || allowedToolNames.length === 0) {
+      return this._toolsWithoutExecute;
+    }
+
+    const allowSet = new Set(allowedToolNames);
+    return Object.fromEntries(Object.entries(this._toolsWithoutExecute).filter(([toolName]) => allowSet.has(toolName)));
+  }
 }

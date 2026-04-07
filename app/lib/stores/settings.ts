@@ -1,10 +1,14 @@
 import { atom, map } from 'nanostores';
 import { PROVIDER_LIST } from '~/utils/constants';
 import type { IProviderConfig } from '~/types/model';
-import type { TabVisibilityConfig, TabWindowConfig, UserTabConfig } from '~/components/@settings/core/types';
+import type { TabType, TabWindowConfig, UserTabConfig } from '~/components/@settings/core/types';
 import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/constants';
 import { toggleTheme } from './theme';
-import { STORAGE_KEY_PROVIDER_SETTINGS, STORAGE_KEY_AUTO_ENABLED_PROVIDERS, STORAGE_KEY_TAB_CONFIGURATION } from '~/lib/persistence/storageKeys';
+import {
+  STORAGE_KEY_PROVIDER_SETTINGS,
+  STORAGE_KEY_AUTO_ENABLED_PROVIDERS,
+  STORAGE_KEY_TAB_CONFIGURATION,
+} from '~/lib/persistence/storageKeys';
 import { create } from 'zustand';
 
 export interface Shortcut {
@@ -362,10 +366,63 @@ export const updateLifeBeginsDna = (enabled: boolean) => {
   localStorage.setItem(SETTINGS_KEYS.LIFEBEGINS_DNA, JSON.stringify(enabled));
 };
 
+function getDefaultUserTabConfig(): UserTabConfig[] {
+  return DEFAULT_TAB_CONFIG.filter((tab): tab is UserTabConfig => tab.window === 'user');
+}
+
+type UserTabRecord = Partial<UserTabConfig> & { id?: TabType };
+
+export function reconcileUserTabsWithDefaults(input: unknown): UserTabConfig[] {
+  const defaults = getDefaultUserTabConfig();
+  const defaultMap = new Map(defaults.map((tab) => [tab.id, tab]));
+  const validSavedTabs = Array.isArray(input)
+    ? input.filter((item): item is UserTabRecord => {
+        return Boolean(item && typeof item === 'object' && typeof (item as UserTabRecord).id === 'string');
+      })
+    : [];
+
+  const dedupedSaved = new Map<TabType, UserTabRecord>();
+
+  for (const tab of validSavedTabs) {
+    const tabId = tab.id as TabType;
+
+    if (!defaultMap.has(tabId) || dedupedSaved.has(tabId)) {
+      continue;
+    }
+
+    dedupedSaved.set(tabId, tab);
+  }
+
+  const orderedSavedIds = [...dedupedSaved.entries()]
+    .sort(([, a], [, b]) => {
+      const orderA = typeof a.order === 'number' ? a.order : Number.MAX_SAFE_INTEGER;
+      const orderB = typeof b.order === 'number' ? b.order : Number.MAX_SAFE_INTEGER;
+      return orderA - orderB;
+    })
+    .map(([id]) => id);
+
+  const orderedIds = [
+    ...orderedSavedIds,
+    ...defaults.map((tab) => tab.id).filter((id) => !orderedSavedIds.includes(id)),
+  ];
+
+  return orderedIds.map((id, index) => {
+    const defaultTab = defaultMap.get(id)!;
+    const savedTab = dedupedSaved.get(id);
+
+    return {
+      ...defaultTab,
+      visible: typeof savedTab?.visible === 'boolean' ? savedTab.visible : defaultTab.visible,
+      order: index,
+      window: 'user',
+    };
+  });
+}
+
 // Initialize tab configuration from localStorage or defaults
 const getInitialTabConfiguration = (): TabWindowConfig => {
   const defaultConfig: TabWindowConfig = {
-    userTabs: DEFAULT_TAB_CONFIG.filter((tab): tab is UserTabConfig => tab.window === 'user'),
+    userTabs: getDefaultUserTabConfig(),
   };
 
   if (!isBrowser) {
@@ -385,9 +442,23 @@ const getInitialTabConfiguration = (): TabWindowConfig => {
       return defaultConfig;
     }
 
-    // Ensure proper typing of loaded configuration
+    const reconciledUserTabs = reconcileUserTabsWithDefaults(parsed.userTabs);
+
+    const shouldPersist =
+      reconciledUserTabs.length !== parsed.userTabs.length ||
+      reconciledUserTabs.some((tab, index) => parsed.userTabs[index]?.id !== tab.id);
+
+    if (shouldPersist) {
+      localStorage.setItem(
+        STORAGE_KEY_TAB_CONFIGURATION,
+        JSON.stringify({
+          userTabs: reconciledUserTabs,
+        }),
+      );
+    }
+
     return {
-      userTabs: parsed.userTabs.filter((tab: TabVisibilityConfig): tab is UserTabConfig => tab.window === 'user'),
+      userTabs: reconciledUserTabs,
     };
   } catch (error) {
     console.warn('Failed to parse tab configuration:', error);
@@ -402,7 +473,7 @@ export const tabConfigurationStore = map<TabWindowConfig>(getInitialTabConfigura
 // Helper function to reset tab configuration
 export const resetTabConfiguration = () => {
   const defaultConfig: TabWindowConfig = {
-    userTabs: DEFAULT_TAB_CONFIG.filter((tab): tab is UserTabConfig => tab.window === 'user'),
+    userTabs: getDefaultUserTabConfig(),
   };
 
   tabConfigurationStore.set(defaultConfig);

@@ -10,6 +10,7 @@ import {
   STORAGE_KEY_ERROR_LOGS,
   STORAGE_KEY_READ_LOGS,
   STORAGE_KEY_LAST_ACKNOWLEDGED_UPDATE,
+  STORAGE_KEY_SKILLS_SETTINGS,
 } from '~/lib/persistence/storageKeys';
 import { type Message } from 'ai';
 import { getAllChats, deleteChat } from '~/lib/persistence/chats';
@@ -130,6 +131,7 @@ export class ImportExportService {
         ui: {
           // Tab configuration
           bolt_tab_configuration: this._safeGetItem(STORAGE_KEY_TAB_CONFIGURATION),
+          skills_settings: this._safeGetItem(STORAGE_KEY_SKILLS_SETTINGS),
           tabConfiguration: allCookies.tabConfiguration,
 
           // Prompt settings
@@ -436,6 +438,14 @@ export class ImportExportService {
           this._safeSetItem(STORAGE_KEY_TAB_CONFIGURATION, data.ui.bolt_tab_configuration);
         } catch (err) {
           console.error('Error importing tab configuration:', err);
+        }
+      }
+
+      if (data.ui.skills_settings) {
+        try {
+          this._safeSetItem(STORAGE_KEY_SKILLS_SETTINGS, data.ui.skills_settings);
+        } catch (err) {
+          console.error('Error importing skills settings:', err);
         }
       }
 

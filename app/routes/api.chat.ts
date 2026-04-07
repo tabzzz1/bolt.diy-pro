@@ -14,6 +14,7 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import type { DesignScheme } from '~/types/design-scheme';
 import { MCPService } from '~/lib/services/mcpService';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
+import type { SkillsSettings } from '~/lib/skills/schema';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
@@ -48,7 +49,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     },
   });
 
-  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
+  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps, skills } =
     await request.json<{
       messages: Messages;
       files: any;
@@ -65,6 +66,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         };
       };
       maxLLMSteps: number;
+      skills?: SkillsSettings;
     }>();
 
   const cookieHeader = request.headers.get('Cookie');
@@ -278,6 +280,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               contextFiles: filteredFiles,
               chatMode,
               designScheme,
+              skills,
               summary,
               messageSliceId,
             });
@@ -319,6 +322,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           contextFiles: filteredFiles,
           chatMode,
           designScheme,
+          skills,
           summary,
           messageSliceId,
         });

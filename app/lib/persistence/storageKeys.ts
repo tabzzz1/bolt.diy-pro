@@ -98,6 +98,13 @@ export const STORAGE_KEY_AUTO_ENABLED_PROVIDERS = 'auto_enabled_providers';
  */
 export const STORAGE_KEY_MCP_SETTINGS = 'mcp_settings';
 
+/**
+ * Skills 功能配置（全局技能、触发模式、注入上限）
+ * 值类型：JSON 对象 { version, skillsEnabled, maxInjectedSkills, skills[] }
+ * 读写位置：app/lib/stores/skills.ts, app/components/@settings/tabs/skills/SkillsTab.tsx
+ */
+export const STORAGE_KEY_SKILLS_SETTINGS = 'skills_settings';
+
 // ─────────────────────────────────────────────
 // 3. 第三方平台连接
 // ─────────────────────────────────────────────
