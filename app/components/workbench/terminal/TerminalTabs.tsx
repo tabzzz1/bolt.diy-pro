@@ -99,6 +99,7 @@ export const TerminalTabs = memo(() => {
   useEffect(() => {
     const unsubscribeFromEventEmitter = shortcutEventEmitter.on('toggleTerminal', () => {
       terminalToggledByShortcut.current = true;
+      workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
     });
 
     const unsubscribeFromThemeStore = themeStore.subscribe(() => {

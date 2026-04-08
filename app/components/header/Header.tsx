@@ -5,10 +5,11 @@ import { classNames } from '~/utils/classNames';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import { isSidebarOpen } from '~/lib/stores/sidebar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SettingsButton } from '~/components/ui/SettingsButton';
 import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import { useTranslation } from 'react-i18next';
+import { shortcutEventEmitter } from '~/lib/hooks/useShortcuts';
 
 export function Header() {
   const chat = useStore(chatStore);
@@ -19,6 +20,12 @@ export function Header() {
   const handleSidebarToggle = () => {
     isSidebarOpen.set(!isPinned);
   };
+
+  useEffect(() => {
+    return shortcutEventEmitter.on('openSettings', () => {
+      setIsSettingsOpen(true);
+    });
+  }, []);
 
   return (
     <header

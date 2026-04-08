@@ -4,6 +4,7 @@ import type { IProviderConfig } from '~/types/model';
 import type { TabType, TabWindowConfig, UserTabConfig } from '~/components/@settings/core/types';
 import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/constants';
 import { toggleTheme } from './theme';
+import { isSidebarOpen } from './sidebar';
 import {
   STORAGE_KEY_PROVIDER_SETTINGS,
   STORAGE_KEY_AUTO_ENABLED_PROVIDERS,
@@ -25,6 +26,8 @@ export interface Shortcut {
 
 export interface Shortcuts {
   toggleTheme: Shortcut;
+  toggleSidebar: Shortcut;
+  openSettings: Shortcut;
   toggleTerminal: Shortcut;
 }
 
@@ -33,15 +36,32 @@ export const LOCAL_PROVIDERS = ['OpenAILike', 'LMStudio', 'Ollama'];
 
 export type ProviderSetting = Record<string, IProviderConfig>;
 
-// Simplified shortcuts store with only theme toggle
+// Hardcoded global shortcuts (not user configurable)
 export const shortcutsStore = map<Shortcuts>({
   toggleTheme: {
     key: 'd',
-    metaKey: true,
-    altKey: true,
     shiftKey: true,
+    ctrlOrMetaKey: true,
     action: () => toggleTheme(),
     description: 'Toggle theme',
+    isPreventDefault: true,
+  },
+  toggleSidebar: {
+    key: 'b',
+    ctrlOrMetaKey: true,
+    action: () => {
+      isSidebarOpen.set(!isSidebarOpen.get());
+    },
+    description: 'Toggle sidebar',
+    isPreventDefault: true,
+  },
+  openSettings: {
+    key: ',',
+    ctrlOrMetaKey: true,
+    action: () => {
+      // This will be handled by settings-aware UI components
+    },
+    description: 'Open settings',
     isPreventDefault: true,
   },
   toggleTerminal: {

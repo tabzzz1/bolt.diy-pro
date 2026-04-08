@@ -9,9 +9,13 @@ import { isMac } from '~/utils/os';
 import { setLanguage, type Language } from '~/lib/stores/i18n';
 import { STORAGE_KEY_USER_PROFILE } from '~/lib/persistence/storageKeys';
 
+type ShortcutToken = 'mod' | 'meta' | 'alt' | 'shift' | string;
+
 // Helper to get modifier key symbols/text
 const getModifierSymbol = (modifier: string): string => {
   switch (modifier) {
+    case 'mod':
+      return isMac ? '⌘' : 'Ctrl';
     case 'meta':
       return isMac ? '⌘' : 'Win';
     case 'alt':
@@ -66,6 +70,33 @@ export default function SettingsTab() {
       toast.error(t('saveFail'));
     }
   }, [settings]);
+
+  const shortcuts: Array<{
+    title: string;
+    description: string;
+    keys: ShortcutToken[];
+  }> = [
+    {
+      title: t('toggleSidebar'),
+      description: t('toggleSidebarDescription'),
+      keys: ['mod', 'B'],
+    },
+    {
+      title: t('openSettings'),
+      description: t('openSettingsDescription'),
+      keys: ['mod', ','],
+    },
+    {
+      title: t('toggleTerminal'),
+      description: t('toggleTerminalDescription'),
+      keys: ['mod', '`'],
+    },
+    {
+      title: t('toggleTheme'),
+      description: t('switchBetweenLightAndDark'),
+      keys: ['mod', 'shift', 'D'],
+    },
+  ];
 
   return (
     <div className="space-y-4">
@@ -179,7 +210,7 @@ export default function SettingsTab() {
         </div>
       </motion.div>
 
-      {/* Simplified Keyboard Shortcuts */}
+      {/* Keyboard Shortcuts */}
       <motion.div
         className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-4"
         initial={{ opacity: 0, y: 20 }}
@@ -192,26 +223,29 @@ export default function SettingsTab() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-2 rounded-lg bg-[#FAFAFA] dark:bg-[#1A1A1A]">
-            <div className="flex flex-col">
-              <span className="text-sm text-bolt-elements-textPrimary">{t('toggleTheme')}</span>
-              <span className="text-xs text-bolt-elements-textSecondary">{t('switchBetweenLightAndDark')}</span>
+          {shortcuts.map((shortcut) => (
+            <div
+              key={shortcut.title}
+              className="flex items-center justify-between p-2 rounded-lg bg-[#FAFAFA] dark:bg-[#1A1A1A]"
+            >
+              <div className="flex flex-col">
+                <span className="text-sm text-bolt-elements-textPrimary">{shortcut.title}</span>
+                <span className="text-xs text-bolt-elements-textSecondary">{shortcut.description}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                {shortcut.keys.map((key) => (
+                  <kbd
+                    key={`${shortcut.title}-${key}`}
+                    className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm"
+                  >
+                    {['mod', 'meta', 'alt', 'shift'].includes(key.toLowerCase())
+                      ? getModifierSymbol(key.toLowerCase())
+                      : key}
+                  </kbd>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
-                {getModifierSymbol('meta')}
-              </kbd>
-              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
-                {getModifierSymbol('alt')}
-              </kbd>
-              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
-                {getModifierSymbol('shift')}
-              </kbd>
-              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
-                D
-              </kbd>
-            </div>
-          </div>
+          ))}
         </div>
       </motion.div>
     </div>
