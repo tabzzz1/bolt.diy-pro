@@ -39,9 +39,9 @@ describe('useShortcuts', () => {
     expect(isSidebarOpen.get()).toBe(true);
   });
 
-  it('dispatches openSettings with Cmd/Ctrl+,', () => {
+  it('dispatches openControlPanel with Cmd/Ctrl+,', () => {
     let dispatched = false;
-    const unsubscribe = shortcutEventEmitter.on('openSettings', () => {
+    const unsubscribe = shortcutEventEmitter.on('openControlPanel', () => {
       dispatched = true;
     });
 
@@ -94,4 +94,3 @@ describe('useShortcuts', () => {
     expect(themeStore.get()).toBe('dark');
   });
 });
-

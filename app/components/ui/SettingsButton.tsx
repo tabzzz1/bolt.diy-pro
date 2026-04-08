@@ -6,15 +6,15 @@ interface SettingsButtonProps {
   label?: string;
 }
 
-export const SettingsButton = memo(({ onClick, title = 'Settings', label }: SettingsButtonProps) => {
+export const SettingsButton = memo(({ onClick, title = 'Control Panel', label }: SettingsButtonProps) => {
   return (
     <button
       onClick={onClick}
       title={title}
       data-testid="settings-button"
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-bolt-elements-borderColor bg-white dark:bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-gray-100 dark:hover:bg-bolt-elements-background-depth-2 transition-all ml-1"
+      className="group flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-bolt-elements-borderColor bg-white dark:bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-gray-100 dark:hover:bg-bolt-elements-background-depth-2 transition-all ml-1"
     >
-      <div className="i-ph:gear text-xl transition-transform group-hover:rotate-45" />
+      <div className="i-ph:sliders-horizontal text-xl transition-transform group-hover:rotate-12" />
       {label && <span className="text-xs font-medium">{label}</span>}
     </button>
   );

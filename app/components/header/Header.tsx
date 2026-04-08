@@ -14,16 +14,16 @@ import { shortcutEventEmitter } from '~/lib/hooks/useShortcuts';
 export function Header() {
   const chat = useStore(chatStore);
   const isPinned = useStore(isSidebarOpen);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const { t } = useTranslation('chat');
+  const [isControlPanelOpen, setIsControlPanelOpen] = useState(false);
+  const { t } = useTranslation('settings');
 
   const handleSidebarToggle = () => {
     isSidebarOpen.set(!isPinned);
   };
 
   useEffect(() => {
-    return shortcutEventEmitter.on('openSettings', () => {
-      setIsSettingsOpen(true);
+    return shortcutEventEmitter.on('openControlPanel', () => {
+      setIsControlPanelOpen(true);
     });
   }, []);
 
@@ -79,12 +79,12 @@ export function Header() {
 
       <div className="flex items-center gap-2 ml-2">
         <SettingsButton
-          onClick={() => setIsSettingsOpen(true)}
-          title={t('header.settings')}
-          label={t('header.settings')}
+          onClick={() => setIsControlPanelOpen(true)}
+          title={t('controlPanel')}
+          label={t('controlPanel')}
         />
       </div>
-      <ControlPanel open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <ControlPanel open={isControlPanelOpen} onClose={() => setIsControlPanelOpen(false)} />
     </header>
   );
 }

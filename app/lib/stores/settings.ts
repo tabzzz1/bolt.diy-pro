@@ -27,7 +27,7 @@ export interface Shortcut {
 export interface Shortcuts {
   toggleTheme: Shortcut;
   toggleSidebar: Shortcut;
-  openSettings: Shortcut;
+  openControlPanel: Shortcut;
   toggleTerminal: Shortcut;
 }
 
@@ -55,13 +55,13 @@ export const shortcutsStore = map<Shortcuts>({
     description: 'Toggle sidebar',
     isPreventDefault: true,
   },
-  openSettings: {
+  openControlPanel: {
     key: ',',
     ctrlOrMetaKey: true,
     action: () => {
-      // This will be handled by settings-aware UI components
+      // This will be handled by control-panel-aware UI components
     },
-    description: 'Open settings',
+    description: 'Open control panel',
     isPreventDefault: true,
   },
   toggleTerminal: {

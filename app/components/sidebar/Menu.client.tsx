@@ -67,6 +67,7 @@ function CurrentDateTimeInline() {
 
 export const Menu = () => {
   const { t } = useTranslation('sidebar');
+  const { t: tSettings } = useTranslation('settings');
   const language = useStore(languageStore);
   const dateFnsLocale = language === 'zh' ? zhCN : undefined;
 
@@ -74,7 +75,7 @@ export const Menu = () => {
   const [list, setList] = useState<ChatHistoryItem[]>([]);
   const open = useStore(isSidebarOpen);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isControlPanelOpen, setIsControlPanelOpen] = useState(false);
   const profile = useStore(profileStore);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -307,13 +308,13 @@ export const Menu = () => {
     loadEntries(); // Reload the list after duplication
   };
 
-  const handleSettingsClick = () => {
-    setIsSettingsOpen(true);
+  const handleControlPanelClick = () => {
+    setIsControlPanelOpen(true);
     isSidebarOpen.set(false);
   };
 
-  const handleSettingsClose = () => {
-    setIsSettingsOpen(false);
+  const handleControlPanelClose = () => {
+    setIsControlPanelOpen(false);
   };
 
   const setDialogContentWithLogging = useCallback((content: DialogContent) => {
@@ -338,7 +339,7 @@ export const Menu = () => {
           'flex selection-accent flex-col side-menu fixed top-[var(--header-height)] h-[calc(100vh-var(--header-height))] rounded-br-2xl',
           'bg-white dark:bg-gray-950 border-r border-b border-bolt-elements-borderColor',
           'shadow-xl text-sm',
-          isSettingsOpen ? 'z-40' : 'z-sidebar',
+          isControlPanelOpen ? 'z-40' : 'z-sidebar',
         )}
       >
         {/* 顶部用户信息区 */}
@@ -548,13 +549,13 @@ export const Menu = () => {
 
           {/* 底部工具栏 */}
           <div className="flex items-center justify-between px-3 py-2.5 border-t border-gray-100 dark:border-gray-800/50 bg-gray-50/80 dark:bg-gray-900/50">
-            <SettingsButton onClick={handleSettingsClick} />
+            <SettingsButton onClick={handleControlPanelClick} title={tSettings('controlPanel')} />
             <ThemeSwitch />
           </div>
         </div>
       </motion.div>
 
-      <ControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />
+      <ControlPanel open={isControlPanelOpen} onClose={handleControlPanelClose} />
     </>
   );
 };

@@ -82,8 +82,8 @@ export default function SettingsTab() {
       keys: ['mod', 'B'],
     },
     {
-      title: t('openSettings'),
-      description: t('openSettingsDescription'),
+      title: t('openControlPanel'),
+      description: t('openControlPanelDescription'),
       keys: ['mod', ','],
     },
     {

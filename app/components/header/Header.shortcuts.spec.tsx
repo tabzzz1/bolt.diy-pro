@@ -52,13 +52,13 @@ describe('Header keyboard shortcuts integration', () => {
     cleanup();
   });
 
-  it('opens settings panel when openSettings shortcut event is dispatched', () => {
+  it('opens control panel when openControlPanel shortcut event is dispatched', () => {
     render(<Header />);
 
     expect(screen.getByTestId('control-panel').textContent).toBe('closed');
 
     act(() => {
-      shortcutEventEmitter.dispatch('openSettings');
+      shortcutEventEmitter.dispatch('openControlPanel');
     });
 
     expect(screen.getByTestId('control-panel').textContent).toBe('open');
