@@ -129,6 +129,10 @@ let debugLogger: any = null;
 
 // Lazy load debug logger to avoid circular dependencies
 const getDebugLogger = () => {
+  if (import.meta.env.MODE === 'test') {
+    return null;
+  }
+
   if (!debugLogger && typeof window !== 'undefined') {
     try {
       // Use dynamic import asynchronously but don't block the function

@@ -2,7 +2,7 @@ import { atom, map } from 'nanostores';
 import { PROVIDER_LIST } from '~/utils/constants';
 import type { IProviderConfig } from '~/types/model';
 import type { TabType, TabWindowConfig, UserTabConfig } from '~/components/@settings/core/types';
-import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/constants';
+import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/default-tab-config';
 import { toggleTheme } from './theme';
 import { isSidebarOpen } from './sidebar';
 import {
