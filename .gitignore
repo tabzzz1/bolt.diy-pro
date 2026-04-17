@@ -50,5 +50,6 @@ docs/instructions/Roadmap.md
 !.planning/**/*.json
 !notes/
 !notes/**
+.DS_Store
 !AGENTS.md
 .qodo

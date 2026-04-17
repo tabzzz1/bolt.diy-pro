@@ -1,0 +1,40 @@
+sequenceDiagram
+    autonumber
+
+    actor U as 用户
+    participant C as 聊天前端
+    participant A as 聊天接口
+    participant O as 上下文处理
+    participant L as 模型管理与调用
+    participant M as 大语言模型
+    participant P as 消息解析器
+    participant W as 工作台状态与执行
+    participant R as 浏览器运行时
+    participant V as 终端与预览
+
+    U->>C: 输入需求并发起生成
+    C->>A: 提交消息、文件、模型配置、增强参数
+    A->>O: 组织历史消息、项目文件与工具能力
+    O->>L: 构造模型请求
+    L->>M: 发起流式生成
+
+    loop 流式返回阶段
+        M-->>L: 文本片段 / 进度信息 / 结构化产物
+        L-->>A: 标准化流式结果
+        A-->>C: 增量响应
+        C->>P: 解析预设的格式化标签
+        P->>W: 注册产物与动作
+    end
+
+    alt 返回普通文本
+        C-->>U: 在对话区展示解释与进度
+    else 返回结构化动作
+        W->>R: 顺序执行文件写入与命令动作
+        R-->>W: 返回文件状态、命令输出、服务事件
+        W->>V: 同步终端日志与预览地址
+        V-->>U: 展示运行结果、报错信息与页面预览
+    end
+
+    U->>C: 根据预览结果继续提出修改
+    C->>A: 发起下一轮增量请求
+    Note over U,V: 形成“需求输入—生成—执行—反馈—再生成”的闭环
