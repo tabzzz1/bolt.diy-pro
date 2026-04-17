@@ -48,5 +48,7 @@ docs/instructions/Roadmap.md
 !.planning/
 !.planning/**/*.md
 !.planning/**/*.json
+!notes/
+!notes/**
 !AGENTS.md
 .qodo
