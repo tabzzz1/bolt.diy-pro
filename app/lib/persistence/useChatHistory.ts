@@ -1,5 +1,6 @@
 import { useLoaderData, useNavigate, useSearchParams } from '@remix-run/react';
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { atom } from 'nanostores';
 import { generateId, type JSONValue, type Message } from 'ai';
 import { toast } from 'react-toastify';
@@ -87,6 +88,7 @@ function deriveDescriptionFromMessages(messages: Message[]): string {
 
 export function useChatHistory() {
   const navigate = useNavigate();
+  const { t } = useTranslation('chat');
   const { id: mixedId } = useLoaderData<{ id?: string }>();
   const [searchParams] = useSearchParams();
 
@@ -176,7 +178,7 @@ export function useChatHistory() {
                   role: 'assistant',
 
                   // Combine followup message and the artifact with files and command actions
-                  content: `Bolt Restored your chat from a snapshot. You can revert this message to load the full chat history.
+                  content: `${t('snapshotRestore.notice')}
                   <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
                   ${Object.entries(snapshot?.files || {})
                     .map(([key, value]) => {
@@ -196,6 +198,9 @@ ${value.content}
                   `, // Added commandActionsString, followupMessage, updated id and title
                   annotations: [
                     'no-store',
+                    {
+                      type: 'snapshotRestore',
+                    },
                     ...(summary
                       ? [
                           {
@@ -241,7 +246,7 @@ ${value.content}
       // Handle case where there is no mixedId (e.g., new chat)
       setReady(true);
     }
-  }, [mixedId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
+  }, [mixedId, db, navigate, searchParams, t]); // Added db, navigate, searchParams dependencies
 
   const takeSnapshot = useCallback(
     async (chatIdx: string, files: FileMap, _chatId?: string | undefined, chatSummary?: string) => {

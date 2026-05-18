@@ -1189,6 +1189,10 @@ const en = {
       chatSummaryHeading: 'Summary',
       codeContextHeading: 'Context',
     },
+    snapshotRestore: {
+      notice: 'Bolt restored your chat from a snapshot. You can show the full history to load earlier messages.',
+      showFullHistory: 'Show full history',
+    },
     progress: {
       analysingRequest: 'Analysing Request',
       analysisComplete: 'Analysis Complete',

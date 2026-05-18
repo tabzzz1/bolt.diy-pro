@@ -245,6 +245,7 @@ export const AssistantMessage = memo(
       return segments;
     }, [parts, extractedContent.content]);
     const hasVisibleResponseContent = extractedContent.content.trim().length > 0;
+    const isSnapshotRestoreMessage = filteredAnnotations.some((annotation) => annotation.type === 'snapshotRestore');
 
     useEffect(() => {
       if (!isStreaming) {
@@ -378,6 +379,19 @@ export const AssistantMessage = memo(
           {!isStreaming && totalDurationSeconds !== null && (
             <div className="mt-2 text-[11px] text-bolt-elements-textTertiary">
               {t('process.totalDuration', { seconds: totalDurationSeconds })}
+            </div>
+          )}
+
+          {isSnapshotRestoreMessage && !isStreaming && onRewind && messageId && (
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-1.5 text-xs font-medium text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-accent-500/50"
+                onClick={() => onRewind(messageId)}
+              >
+                <span className="i-ph:clock-counter-clockwise text-sm" />
+                {t('snapshotRestore.showFullHistory')}
+              </button>
             </div>
           )}
 

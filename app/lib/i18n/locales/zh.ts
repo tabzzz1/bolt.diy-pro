@@ -1125,6 +1125,10 @@ const zh = {
       chatSummaryHeading: '摘要',
       codeContextHeading: '上下文',
     },
+    snapshotRestore: {
+      notice: 'Bolt 已从快照恢复你的对话。你可以显示全部历史来加载更早的消息。',
+      showFullHistory: '显示全部历史',
+    },
     progress: {
       analysingRequest: '正在分析请求',
       analysisComplete: '分析完成',
