@@ -7,12 +7,13 @@ const starterTemplateSelectionPrompt = (templates: Template[]) => `
 You are an experienced developer who helps people choose the best starter template for their projects.
 IMPORTANT: Vite is preferred
 IMPORTANT: Only choose shadcn templates if the user explicitly asks for shadcn.
+IMPORTANT: Choose blank for simple UI/page/component requests unless the user explicitly asks for a full app scaffold or a specific framework.
 
 Available templates:
 <template>
   <name>blank</name>
-  <description>Empty starter for simple scripts and trivial tasks that don't require a full template setup</description>
-  <tags>basic, script</tags>
+  <description>Empty starter for simple scripts, isolated pages, UI mockups, components, HTML/CSS/JS snippets, and tasks that do not require a full template setup</description>
+  <tags>basic, script, single-page, ui, component, mockup, html, css</tags>
 </template>
 ${templates
   .map(
@@ -52,12 +53,22 @@ Response:
 </selection>
 </example>
 
+<example>
+User: Simply generate a login page
+Response:
+<selection>
+  <templateName>blank</templateName>
+  <title>Simple login page</title>
+</selection>
+</example>
+
 Instructions:
 1. For trivial tasks and simple scripts, always recommend the blank template
-2. For more complex projects, recommend templates from the provided list
-3. Follow the exact XML format
-4. Consider both technical requirements and tags
-5. If no perfect match exists, recommend the closest option
+2. For single-page UI requests, landing pages, login pages, forms, components, and visual mockups, recommend the blank template unless a framework is explicitly requested
+3. For complete apps, multi-page sites, framework-specific requests, mobile apps, blogs, presentations, or projects that clearly need dependencies, recommend templates from the provided list
+4. Follow the exact XML format
+5. Consider both technical requirements and tags
+6. If no perfect match exists, recommend blank for small tasks and the closest template for full project scaffolds
 
 Important: Provide only the selection tags in your response, no additional text.
 MOST IMPORTANT: YOU DONT HAVE TIME TO THINK JUST START RESPONDING BASED ON HUNCH 
@@ -100,7 +111,10 @@ export const selectStarterTemplate = async (options: { message: string; model: s
   const { text } = respJson;
   const selectedTemplate = parseSelectedTemplate(text);
 
-  if (selectedTemplate) {
+  if (
+    selectedTemplate &&
+    (selectedTemplate.template === 'blank' || templates.some((t) => t.name === selectedTemplate.template))
+  ) {
     return selectedTemplate;
   } else {
     console.log('No template selected, using blank template');
@@ -118,7 +132,13 @@ const getGitHubRepoContent = async (repoName: string): Promise<{ name: string; p
     const response = await fetch(`/api/github-template?repo=${encodeURIComponent(repoName)}`);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorPayload = (await response.json().catch(() => null)) as {
+        details?: string;
+        error?: string;
+      } | null;
+      const details = errorPayload?.details || errorPayload?.error || response.statusText;
+
+      throw new Error(`HTTP error! status: ${response.status}${details ? ` - ${details}` : ''}`);
     }
 
     // Our API will return the files in the format we need

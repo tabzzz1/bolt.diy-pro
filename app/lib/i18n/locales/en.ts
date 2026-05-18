@@ -1033,6 +1033,8 @@ const en = {
     },
     starterTemplates: {
       orStartWith: 'or start a blank app with your favorite stack',
+      rateLimitFallback: 'Rate limit exceeded. Skipping starter template\nContinuing with blank template',
+      importFailedFallback: 'Failed to import starter template\nContinuing with blank template',
     },
     webSearch: {
       fetch: 'Fetch',

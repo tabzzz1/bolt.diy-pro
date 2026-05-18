@@ -973,6 +973,8 @@ const zh = {
     },
     starterTemplates: {
       orStartWith: '或使用你喜欢的技术栈从空白项目开始',
+      rateLimitFallback: '请求频率超限，已跳过初始模板\n将继续使用空白模板',
+      importFailedFallback: '导入初始模板失败\n将继续使用空白模板',
     },
     webSearch: {
       fetch: '获取',

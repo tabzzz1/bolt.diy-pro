@@ -4,6 +4,7 @@ import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { description, useChatHistory } from '~/lib/persistence';
 import { chatStore, editStore, cancelEditing } from '~/lib/stores/chat';
@@ -85,6 +86,7 @@ interface ChatProps {
 export const ChatImpl = memo(
   ({ description, initialMessages, storeMessageHistory, importChat, exportChat }: ChatProps) => {
     useShortcuts();
+    const { t } = useTranslation('chat');
     const location = useLocation();
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -511,10 +513,12 @@ export const ChatImpl = memo(
 
           if (template !== 'blank') {
             const temResp = await getTemplates(template, title).catch((e) => {
-              if (e.message.includes('rate limit')) {
-                toast.warning('Rate limit exceeded. Skipping starter template\n Continuing with blank template');
+              const message = e instanceof Error ? e.message : String(e);
+
+              if (message.toLowerCase().includes('rate limit')) {
+                toast.warning(t('starterTemplates.rateLimitFallback'));
               } else {
-                toast.warning('Failed to import starter template\n Continuing with blank template');
+                toast.warning(t('starterTemplates.importFailedFallback'));
               }
 
               return null;

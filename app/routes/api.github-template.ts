@@ -123,32 +123,46 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
 // Your existing method for non-Cloudflare environments
 async function fetchRepoContentsZip(repo: string, githubToken?: string) {
   const baseUrl = 'https://api.github.com';
+  const headers = {
+    Accept: 'application/vnd.github.v3+json',
+    'User-Agent': 'bolt.diy-app',
+    ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
+  };
 
-  // Get the latest release
-  const releaseResponse = await fetch(`${baseUrl}/repos/${repo}/releases/latest`, {
-    headers: {
-      Accept: 'application/vnd.github.v3+json',
-      'User-Agent': 'bolt.diy-app',
-      ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
-    },
-  });
+  const repoResponse = await fetch(`${baseUrl}/repos/${repo}`, { headers });
 
-  if (!releaseResponse.ok) {
-    throw new Error(`GitHub API error: ${releaseResponse.status} - ${releaseResponse.statusText}`);
+  if (!repoResponse.ok) {
+    const details = await repoResponse.text();
+    throw new Error(`Repository not found or inaccessible: ${repo} (${repoResponse.status}) ${details}`);
   }
 
-  const releaseData = (await releaseResponse.json()) as any;
-  const zipballUrl = releaseData.zipball_url;
+  const repoData = (await repoResponse.json()) as any;
+  const defaultBranch = repoData.default_branch;
+
+  // Prefer the latest release so published templates remain stable.
+  const releaseResponse = await fetch(`${baseUrl}/repos/${repo}/releases/latest`, {
+    headers,
+  });
+
+  let zipballUrl = `${baseUrl}/repos/${repo}/zipball/${encodeURIComponent(defaultBranch)}`;
+
+  if (!releaseResponse.ok) {
+    console.warn(
+      `Latest release unavailable for ${repo}: ${releaseResponse.status} - ${releaseResponse.statusText}. Falling back to ${defaultBranch}.`,
+    );
+  } else {
+    const releaseData = (await releaseResponse.json()) as any;
+    zipballUrl = releaseData.zipball_url;
+  }
 
   // Fetch the zipball
   const zipResponse = await fetch(zipballUrl, {
-    headers: {
-      ...(githubToken ? { Authorization: `Bearer ${githubToken}` } : {}),
-    },
+    headers,
   });
 
   if (!zipResponse.ok) {
-    throw new Error(`Failed to fetch release zipball: ${zipResponse.status}`);
+    const details = await zipResponse.text();
+    throw new Error(`Failed to fetch template zipball: ${zipResponse.status} ${details}`);
   }
 
   // Get the zip content as ArrayBuffer
