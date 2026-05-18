@@ -28,6 +28,13 @@ function getEditorTheme(settings: EditorSettings) {
       background: 'var(--cm-backgroundColor)',
       color: 'var(--cm-textColor)',
     },
+    '&.cm-readonly .cm-content': {
+      userSelect: 'none',
+      cursor: 'default',
+    },
+    '&.cm-readonly .cm-selectionLayer': {
+      display: 'none',
+    },
     '.cm-cursor': {
       borderLeft: 'var(--cm-cursor-width) solid var(--cm-cursor-backgroundColor)',
     },

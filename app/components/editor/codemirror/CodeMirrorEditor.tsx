@@ -336,6 +336,32 @@ function newEditorState(
     doc: content,
     extensions: [
       EditorView.domEventHandlers({
+        mousedown: (event, view) => {
+          if (!view.state.readOnly) {
+            return false;
+          }
+
+          const target = event.target;
+
+          if (!(target instanceof Element)) {
+            return false;
+          }
+
+          /*
+           * Keep the editor scrollable while generated content is being written,
+           * but prevent the read-only editor from changing cursor/selection state.
+           */
+          if (target.closest('.cm-content, .cm-gutters')) {
+            event.preventDefault();
+            view.dispatch({
+              effects: [readOnlyTooltipStateEffect.of(true)],
+            });
+
+            return true;
+          }
+
+          return false;
+        },
         scroll: debounce((event, view) => {
           if (event.target !== view.scrollDOM) {
             return;
@@ -401,6 +427,9 @@ function newEditorState(
       editableTooltipField,
       editableStateField,
       EditorState.readOnly.from(editableStateField, (editable) => !editable),
+      EditorView.editorAttributes.compute([editableStateField], (state) => ({
+        class: state.field(editableStateField) ? '' : 'cm-readonly',
+      })),
       highlightActiveLineGutter(),
       highlightActiveLine(),
       foldGutter({
@@ -438,9 +467,14 @@ function setEditorDocument(
   autoFocus: boolean,
   doc: TextEditorDocument,
 ) {
+  const previousLeft = view.scrollDOM.scrollLeft;
+  const previousTop = view.scrollDOM.scrollTop;
+  const hasExplicitScrollPosition =
+    typeof doc.scroll?.line === 'number' || typeof doc.scroll?.top === 'number' || typeof doc.scroll?.left === 'number';
+  const contentChanged = doc.value !== view.state.doc.toString();
+
   if (doc.value !== view.state.doc.toString()) {
     view.dispatch({
-      selection: { anchor: 0 },
       changes: {
         from: 0,
         to: view.state.doc.length,
@@ -470,8 +504,8 @@ function setEditorDocument(
     requestAnimationFrame(() => {
       const currentLeft = view.scrollDOM.scrollLeft;
       const currentTop = view.scrollDOM.scrollTop;
-      const newLeft = doc.scroll?.left ?? 0;
-      const newTop = doc.scroll?.top ?? 0;
+      const newLeft = doc.scroll?.left ?? previousLeft;
+      const newTop = doc.scroll?.top ?? previousTop;
 
       if (typeof doc.scroll?.line === 'number') {
         const line = doc.scroll.line;
@@ -496,6 +530,11 @@ function setEditorDocument(
           logger.error('Error scrolling to line:', error);
         }
 
+        return;
+      }
+
+      if (!hasExplicitScrollPosition && contentChanged) {
+        view.scrollDOM.scrollTo(previousLeft, previousTop);
         return;
       }
 
