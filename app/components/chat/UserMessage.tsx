@@ -4,6 +4,7 @@
  */
 import { MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 import { Markdown } from './Markdown';
+import markdownStyles from './Markdown.module.scss';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
 import { UserMessageActions } from './MessageActions';
@@ -78,7 +79,9 @@ export function UserMessage({ content, parts, onDelete, onEdit, isEditing }: Use
           >
             {textContent && (
               <div className="max-h-[60vh] overflow-y-auto modern-scrollbar break-words">
-                <Markdown html>{textContent}</Markdown>
+                <Markdown html className={markdownStyles.UserMessageMarkdown}>
+                  {textContent}
+                </Markdown>
               </div>
             )}
             {images.map((item, index) => (
@@ -130,7 +133,9 @@ export function UserMessage({ content, parts, onDelete, onEdit, isEditing }: Use
           }`}
         >
           <div className="max-h-[60vh] overflow-y-auto modern-scrollbar break-words">
-            <Markdown html>{textContent}</Markdown>
+            <Markdown html className={markdownStyles.UserMessageMarkdown}>
+              {textContent}
+            </Markdown>
           </div>
         </div>
         <div className="mt-1 pr-1">

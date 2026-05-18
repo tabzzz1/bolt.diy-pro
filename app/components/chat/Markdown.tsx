@@ -9,11 +9,13 @@ import type { Message } from 'ai';
 import styles from './Markdown.module.scss';
 import ThoughtBox from './ThoughtBox';
 import type { ProviderInfo } from '~/types/model';
+import { classNames } from '~/utils/classNames';
 
 const logger = createScopedLogger('MarkdownComponent');
 
 interface MarkdownProps {
   children: string;
+  className?: string;
   html?: boolean;
   limitedMarkdown?: boolean;
   append?: (message: Message) => void;
@@ -24,7 +26,16 @@ interface MarkdownProps {
 }
 
 export const Markdown = memo(
-  ({ children, html = false, limitedMarkdown = false, append, setChatMode, model, provider }: MarkdownProps) => {
+  ({
+    children,
+    className,
+    html = false,
+    limitedMarkdown = false,
+    append,
+    setChatMode,
+    model,
+    provider,
+  }: MarkdownProps) => {
     logger.trace('Render');
 
     const components = useMemo(() => {
@@ -196,7 +207,7 @@ export const Markdown = memo(
     return (
       <ReactMarkdown
         allowedElements={allowedHTMLElements}
-        className={styles.MarkdownContent}
+        className={classNames(styles.MarkdownContent, className)}
         components={components}
         remarkPlugins={remarkPlugins(limitedMarkdown)}
         rehypePlugins={rehypePlugins(html)}

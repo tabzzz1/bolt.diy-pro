@@ -170,3 +170,63 @@ $code-font-size: 13px;
     }
   }
 }
+
+.UserMessageMarkdown {
+  font-size: inherit;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+
+  > *:first-child {
+    margin-block-start: 0 !important;
+  }
+
+  > *:last-child {
+    margin-block-end: 0 !important;
+  }
+
+  p {
+    margin-block-start: 0;
+    margin-block-end: 0;
+  }
+
+  p + p {
+    margin-block-start: 10px;
+  }
+
+  :is(ul, ol) {
+    @include not-inside-actions {
+      padding-left: 1.35rem;
+      margin-block-start: 8px;
+      margin-block-end: 0;
+    }
+  }
+
+  p + :is(ul, ol),
+  :is(ul, ol) + p {
+    margin-block-start: 10px;
+  }
+
+  li {
+    @include not-inside-actions {
+      padding-left: 0.15rem;
+
+      & + li {
+        margin-block-start: 5px;
+      }
+
+      > p {
+        margin: 0;
+      }
+    }
+  }
+
+  :not(pre) > code {
+    @include not-inside-actions {
+      border-radius: 4px;
+    }
+  }
+
+  pre {
+    margin-block: 10px 0;
+  }
+}
