@@ -1,4 +1,4 @@
-import { memo, Fragment, useEffect, useMemo, useState } from 'react';
+import { memo, Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Markdown } from './Markdown';
 import type { JSONValue } from 'ai';
 import Popover from '~/components/ui/Popover';
@@ -67,12 +67,28 @@ function normalizedFilePath(path: string) {
 function ReasoningDisclosure({
   reasoning,
   defaultOpen = false,
+  autoCollapse = false,
 }: {
   reasoning: string;
   defaultOpen?: boolean;
+  autoCollapse?: boolean;
 }) {
   const { t } = useTranslation('chat');
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const didAutoCollapseRef = useRef(false);
+
+  useEffect(() => {
+    if (!autoCollapse) {
+      didAutoCollapseRef.current = false;
+
+      return;
+    }
+
+    if (!didAutoCollapseRef.current) {
+      setIsOpen(false);
+      didAutoCollapseRef.current = true;
+    }
+  }, [autoCollapse]);
 
   if (!reasoning.trim()) {
     return null;
@@ -228,6 +244,7 @@ export const AssistantMessage = memo(
 
       return segments;
     }, [parts, extractedContent.content]);
+    const hasVisibleResponseContent = extractedContent.content.trim().length > 0;
 
     useEffect(() => {
       if (!isStreaming) {
@@ -321,7 +338,11 @@ export const AssistantMessage = memo(
 
         {/* Message content — rendered in part order so tool cards stay in place */}
         <div className="pl-[30px]">
-          <ReasoningDisclosure reasoning={reasoningText} defaultOpen={isStreaming} />
+          <ReasoningDisclosure
+            reasoning={reasoningText}
+            defaultOpen={isStreaming}
+            autoCollapse={isStreaming && hasVisibleResponseContent}
+          />
 
           {groupedSegments.map((segment, index) => {
             if (segment.type === 'text') {
