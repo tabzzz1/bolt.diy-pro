@@ -9,57 +9,61 @@ export default class DeepseekProvider extends BaseProvider {
   getApiKeyLink = 'https://platform.deepseek.com/apiKeys';
 
   config = {
+    baseUrlKey: 'DEEPSEEK_API_BASE_URL',
+    baseUrl: 'https://api.deepseek.com',
     apiTokenKey: 'DEEPSEEK_API_KEY',
   };
 
   staticModels: ModelInfo[] = [
     {
-      name: 'deepseek-coder',
-      label: 'Deepseek-Coder',
+      name: 'deepseek-v4-pro',
+      label: 'DeepSeek V4 Pro (Reasoning + Agentic Coding)',
       provider: 'Deepseek',
-      maxTokenAllowed: 8000,
-      maxCompletionTokens: 8192,
+      maxTokenAllowed: 1_000_000,
+      maxCompletionTokens: 384_000,
     },
     {
-      name: 'deepseek-chat',
-      label: 'Deepseek-Chat',
+      name: 'deepseek-v4-flash',
+      label: 'DeepSeek V4 Flash (Fast + Cost-Efficient)',
       provider: 'Deepseek',
-      maxTokenAllowed: 8000,
-      maxCompletionTokens: 8192,
-    },
-    {
-      name: 'deepseek-reasoner',
-      label: 'Deepseek-Reasoner',
-      provider: 'Deepseek',
-      maxTokenAllowed: 8000,
-      maxCompletionTokens: 8192,
-    },
-    {
-      name: 'deepseek-v3.2',
-      label: 'DeepSeek V3.2 (Coding + Tool Use)',
-      provider: 'Deepseek',
-      maxTokenAllowed: 64000,
-      maxCompletionTokens: 8192,
-    },
-    {
-      name: 'deepseek-v3.2-speciale',
-      label: 'DeepSeek V3.2 Speciale (High-Compute)',
-      provider: 'Deepseek',
-      maxTokenAllowed: 64000,
-      maxCompletionTokens: 8192,
+      maxTokenAllowed: 1_000_000,
+      maxCompletionTokens: 384_000,
     },
   ];
+
+  private getModelMetadata(modelId: string): Omit<ModelInfo, 'name' | 'provider'> {
+    const metadataByModel: Record<string, Omit<ModelInfo, 'name' | 'provider'>> = {
+      'deepseek-v4-pro': {
+        label: 'DeepSeek V4 Pro (Reasoning + Agentic Coding)',
+        maxTokenAllowed: 1_000_000,
+        maxCompletionTokens: 384_000,
+      },
+      'deepseek-v4-flash': {
+        label: 'DeepSeek V4 Flash (Fast + Cost-Efficient)',
+        maxTokenAllowed: 1_000_000,
+        maxCompletionTokens: 384_000,
+      },
+    };
+
+    return (
+      metadataByModel[modelId] || {
+        label: `${modelId} (Dynamic)`,
+        maxTokenAllowed: 1_000_000,
+        maxCompletionTokens: 384_000,
+      }
+    );
+  }
 
   async getDynamicModels(
     apiKeys?: Record<string, string>,
     settings?: IProviderSetting,
     serverEnv?: Record<string, string>,
   ): Promise<ModelInfo[]> {
-    const { apiKey } = this.getProviderBaseUrlAndKey({
+    const { baseUrl, apiKey } = this.getProviderBaseUrlAndKey({
       apiKeys,
       providerSettings: settings,
       serverEnv: serverEnv as any,
-      defaultBaseUrlKey: '',
+      defaultBaseUrlKey: 'DEEPSEEK_API_BASE_URL',
       defaultApiTokenKey: 'DEEPSEEK_API_KEY',
     });
 
@@ -68,7 +72,7 @@ export default class DeepseekProvider extends BaseProvider {
     }
 
     try {
-      const response = await fetch('https://api.deepseek.com/models', {
+      const response = await fetch(`${baseUrl || this.config.baseUrl}/models`, {
         headers: {
           Authorization: `Bearer ${apiKey}`,
         },
@@ -82,18 +86,20 @@ export default class DeepseekProvider extends BaseProvider {
 
       const data = (await response.json()) as any;
       const staticModelIds = this.staticModels.map((m) => m.name);
+      const unsupportedLegacyModelIds = new Set(['deepseek-chat', 'deepseek-reasoner']);
 
-      // Filter out models we already have in staticModels
       const dynamicModels =
         data.data
-          ?.filter((model: any) => !staticModelIds.includes(model.id))
-          .map((m: any) => ({
-            name: m.id,
-            label: `${m.id} (Dynamic)`,
-            provider: this.name,
-            maxTokenAllowed: 64000, // Default, adjust per model if available
-            maxCompletionTokens: 8192,
-          })) || [];
+          ?.filter((model: any) => !staticModelIds.includes(model.id) && !unsupportedLegacyModelIds.has(model.id))
+          .map((m: any) => {
+            const metadata = this.getModelMetadata(m.id);
+
+            return {
+              name: m.id,
+              provider: this.name,
+              ...metadata,
+            };
+          }) || [];
 
       return dynamicModels;
     } catch (error) {
@@ -110,11 +116,11 @@ export default class DeepseekProvider extends BaseProvider {
   }): LanguageModelV1 {
     const { model, serverEnv, apiKeys, providerSettings } = options;
 
-    const { apiKey } = this.getProviderBaseUrlAndKey({
+    const { baseUrl, apiKey } = this.getProviderBaseUrlAndKey({
       apiKeys,
       providerSettings: providerSettings?.[this.name],
       serverEnv: serverEnv as any,
-      defaultBaseUrlKey: '',
+      defaultBaseUrlKey: 'DEEPSEEK_API_BASE_URL',
       defaultApiTokenKey: 'DEEPSEEK_API_KEY',
     });
 
@@ -123,6 +129,7 @@ export default class DeepseekProvider extends BaseProvider {
     }
 
     const deepseek = createDeepSeek({
+      baseURL: baseUrl || this.config.baseUrl,
       apiKey,
     });
 
