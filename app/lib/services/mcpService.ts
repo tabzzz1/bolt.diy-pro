@@ -101,6 +101,25 @@ export type MCPServerUnavailable = {
 };
 export type MCPServer = MCPServerAvailable | MCPServerUnavailable;
 
+const EXPLICIT_MCP_REQUEST_PATTERN =
+  /\b(mcp|model context protocol|deepwiki|context7|tool call|tool use|external tool)\b|工具调用|调用.*工具|使用.*工具|使用.*mcp|通过.*mcp/i;
+
+const EXTERNAL_INFORMATION_REQUEST_PATTERN =
+  /https?:\/\/|www\.|联网|搜索|查找|查询|获取|读取|访问|打开|网页|链接|官网|文档|接口文档|外部|实时|最新|当前|现在|今天|新闻|天气|价格|版本|github|gitlab|issue|pull request|\bpr\b|npm|package|api|docs?|documentation|search|browse|fetch|lookup|latest|current|real[-\s]?time|today|weather|news|price|version/i;
+
+export function shouldExposeMCPToolsForPrompt(prompt: string, hasAvailableTools: boolean): boolean {
+  const normalizedPrompt = prompt.trim();
+
+  if (!normalizedPrompt || !hasAvailableTools) {
+    return false;
+  }
+
+  return (
+    EXPLICIT_MCP_REQUEST_PATTERN.test(normalizedPrompt) ||
+    EXTERNAL_INFORMATION_REQUEST_PATTERN.test(normalizedPrompt)
+  );
+}
+
 export class MCPService {
   private static _instance: MCPService;
   private _tools: ToolSet = {};
@@ -355,6 +374,10 @@ export class MCPService {
     return toolName in this._tools;
   }
 
+  shouldExposeToolsForPrompt(prompt: string): boolean {
+    return shouldExposeMCPToolsForPrompt(prompt, Object.keys(this._toolsWithoutExecute).length > 0);
+  }
+
   processToolCall(toolCall: ToolCall, dataStream: DataStreamWriter): void {
     const { toolCallId, toolName } = toolCall;
 
@@ -376,7 +399,7 @@ export class MCPService {
 
   async processToolInvocations(messages: Message[], dataStream: DataStreamWriter): Promise<Message[]> {
     const lastMessage = messages[messages.length - 1];
-    const parts = lastMessage.parts;
+    const parts = lastMessage?.parts;
 
     if (!parts) {
       return messages;

@@ -1,6 +1,6 @@
 import type { ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { memo, useMemo, useState, useEffect } from 'react';
+import { memo, useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
 import { classNames } from '~/utils/classNames';
 import {
@@ -203,7 +203,7 @@ const ToolResultsList = memo(({ toolInvocations, toolCallAnnotations, theme }: T
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
       <ul className="list-none space-y-4">
-        {toolInvocations.map((tool, index) => {
+        {toolInvocations.map((tool) => {
           const toolCallState = tool.toolInvocation.state;
 
           if (toolCallState !== 'result') {
@@ -222,7 +222,7 @@ const ToolResultsList = memo(({ toolInvocations, toolCallAnnotations, theme }: T
 
           return (
             <motion.li
-              key={index}
+              key={toolCallId}
               variants={toolVariants}
               initial="hidden"
               animate="visible"
@@ -280,6 +280,8 @@ interface ToolCallsListProps {
 
 const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResult }: ToolCallsListProps) => {
   const [expanded, setExpanded] = useState<{ [id: string]: boolean }>({});
+  const [pendingToolResults, setPendingToolResults] = useState<Set<string>>(() => new Set());
+  const pendingToolResultsRef = useRef<Set<string>>(new Set());
   const { t } = useTranslation('chat');
 
   // OS detection for shortcut display
@@ -294,6 +296,43 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
     });
     setExpanded(expandedState);
   }, [toolInvocations]);
+
+  useEffect(() => {
+    const activeToolCallIds = new Set(
+      toolInvocations
+        .filter((inv) => inv.toolInvocation.state === 'call')
+        .map((inv) => inv.toolInvocation.toolCallId),
+    );
+    const nextPendingToolResults = new Set(
+      [...pendingToolResultsRef.current].filter((toolCallId) => activeToolCallIds.has(toolCallId)),
+    );
+
+    pendingToolResultsRef.current = nextPendingToolResults;
+    setPendingToolResults(nextPendingToolResults);
+  }, [toolInvocations]);
+
+  const submitToolResult = useCallback(
+    (toolCallId: string, result: string) => {
+      if (pendingToolResultsRef.current.has(toolCallId)) {
+        return;
+      }
+
+      pendingToolResultsRef.current = new Set(pendingToolResultsRef.current).add(toolCallId);
+      setPendingToolResults(pendingToolResultsRef.current);
+
+      try {
+        addToolResult({ toolCallId, result });
+      } catch (error) {
+        const nextPendingToolResults = new Set(pendingToolResultsRef.current);
+        nextPendingToolResults.delete(toolCallId);
+        pendingToolResultsRef.current = nextPendingToolResults;
+        setPendingToolResults(nextPendingToolResults);
+
+        throw error;
+      }
+    },
+    [addToolResult],
+  );
 
   // Keyboard shortcut logic
   useEffect(() => {
@@ -318,30 +357,24 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
       // Cancel: Cmd/Ctrl + Backspace
       if ((isMac ? e.metaKey : e.ctrlKey) && e.key === 'Backspace') {
         e.preventDefault();
-        addToolResult({
-          toolCallId: openId,
-          result: TOOL_EXECUTION_APPROVAL.REJECT,
-        });
+        submitToolResult(openId, TOOL_EXECUTION_APPROVAL.REJECT);
       }
 
       // Run tool: Cmd/Ctrl + Enter
       if ((isMac ? e.metaKey : e.ctrlKey) && (e.key === 'Enter' || e.key === 'Return')) {
         e.preventDefault();
-        addToolResult({
-          toolCallId: openId,
-          result: TOOL_EXECUTION_APPROVAL.APPROVE,
-        });
+        submitToolResult(openId, TOOL_EXECUTION_APPROVAL.APPROVE);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [expanded, addToolResult, isMac]);
+  }, [expanded, submitToolResult, isMac]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
       <ul className="list-none space-y-4">
-        {toolInvocations.map((tool, index) => {
+        {toolInvocations.map((tool) => {
           const toolCallState = tool.toolInvocation.state;
 
           if (toolCallState !== 'call') {
@@ -350,10 +383,11 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
 
           const { toolName, toolCallId } = tool.toolInvocation;
           const annotation = toolCallAnnotations.find((annotation) => annotation.toolCallId === toolCallId);
+          const isPending = pendingToolResults.has(toolCallId);
 
           return (
             <motion.li
-              key={index}
+              key={toolCallId}
               variants={toolVariants}
               initial="hidden"
               animate="visible"
@@ -377,13 +411,10 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
                         'text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary',
                         'transition-all duration-200',
                         'flex items-center gap-2',
+                        'disabled:opacity-50 disabled:cursor-not-allowed',
                       )}
-                      onClick={() =>
-                        addToolResult({
-                          toolCallId,
-                          result: TOOL_EXECUTION_APPROVAL.REJECT,
-                        })
-                      }
+                      disabled={isPending}
+                      onClick={() => submitToolResult(toolCallId, TOOL_EXECUTION_APPROVAL.REJECT)}
                     >
                       {t('toolInvocations.cancel')}{' '}
                       <span className="opacity-70 text-xs ml-1">{isMac ? '⌘⌫' : 'Ctrl+Backspace'}</span>
@@ -395,12 +426,8 @@ const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResul
                         'text-accent-500 hover:text-bolt-elements-textPrimary',
                         'disabled:opacity-50 disabled:cursor-not-allowed',
                       )}
-                      onClick={() =>
-                        addToolResult({
-                          toolCallId,
-                          result: TOOL_EXECUTION_APPROVAL.APPROVE,
-                        })
-                      }
+                      disabled={isPending}
+                      onClick={() => submitToolResult(toolCallId, TOOL_EXECUTION_APPROVAL.APPROVE)}
                     >
                       {t('toolInvocations.runTool')}{' '}
                       <span className="opacity-70 text-xs ml-1">{isMac ? '⌘↵' : 'Ctrl+Enter'}</span>

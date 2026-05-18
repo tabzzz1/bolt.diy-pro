@@ -209,11 +209,22 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           // logger.debug('Code Files Selected');
         }
 
+        const lastUserMessageForToolPolicy = [...processedMessages].reverse().find((message) => message.role === 'user');
+        const { content: lastUserContentForToolPolicy } = lastUserMessageForToolPolicy
+          ? extractPropertiesFromMessage(lastUserMessageForToolPolicy)
+          : { content: '' };
+        const shouldExposeMCPTools = mcpService.shouldExposeToolsForPrompt(lastUserContentForToolPolicy);
+        const mcpToolOptions = shouldExposeMCPTools
+          ? {
+              toolChoice: 'auto' as const,
+              tools: mcpService.toolsWithoutExecute,
+              maxSteps: maxLLMSteps,
+            }
+          : {};
+
         const options: StreamingOptions = {
           supabaseConnection: supabase,
-          toolChoice: 'auto',
-          tools: mcpService.toolsWithoutExecute,
-          maxSteps: maxLLMSteps,
+          ...mcpToolOptions,
           onStepFinish: ({ toolCalls }) => {
             // add tool call annotations for frontend processing
             toolCalls.forEach((toolCall) => {
