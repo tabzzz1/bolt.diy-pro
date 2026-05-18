@@ -52,6 +52,16 @@ const MCP_TOOLS_GUIDANCE = `<mcp_tools_guidance>
 
   Default behavior: answer directly without calling any MCP tool unless the criteria above are clearly met.
 </mcp_tools_guidance>`;
+const BUILD_ARTIFACT_ENFORCEMENT = `<build_artifact_output_contract>
+  CRITICAL: The current request is an implementation request that must modify or create project files.
+
+  You MUST output exactly one <boltArtifact> block containing the required <boltAction> entries.
+  Do NOT answer with only prose, a plan, markdown code fences, or standalone code blocks.
+  Do NOT wrap <boltArtifact> or <boltAction> tags in markdown fences.
+  Use <boltAction type="file"> for every file to create or update.
+  Use <boltAction type="shell"> for install/setup commands and <boltAction type="start"> for the final dev server command when needed.
+  If you need to explain, keep it brief and still include the <boltArtifact> block in the same response.
+</build_artifact_output_contract>`;
 
 export function filterStreamingOptions(options: StreamingOptions | undefined, isReasoning: boolean) {
   const source = (options || {}) as Record<string, unknown>;
@@ -75,12 +85,18 @@ export function buildEffectiveSystemPrompt({
   baseSystemPrompt,
   hasMCPTools,
   skillsGuidance,
+  requiresArtifactOutput = false,
 }: {
   baseSystemPrompt: string;
   hasMCPTools: boolean;
   skillsGuidance?: string;
+  requiresArtifactOutput?: boolean;
 }) {
   const sections = [baseSystemPrompt];
+
+  if (requiresArtifactOutput) {
+    sections.push(BUILD_ARTIFACT_ENFORCEMENT);
+  }
 
   if (skillsGuidance) {
     sections.push(skillsGuidance);
@@ -332,8 +348,9 @@ export async function streamText(props: {
   const toolsInOptions = (filteredOptions as any).tools;
   const hasMCPTools = toolsInOptions && Object.keys(toolsInOptions).length > 0;
 
-  const baseSystemPrompt = chatMode === 'build' ? systemPrompt : discussPrompt();
   const lastUserMessage = [...processedMessages].reverse().find((message) => message.role === 'user');
+  const effectiveChatMode = chatMode === 'build' ? 'build' : 'discuss';
+  const baseSystemPrompt = effectiveChatMode === 'build' ? systemPrompt : discussPrompt();
   const skillsGuidance = buildSkillsGuidance({
     settings: props.skills,
     userMessage: lastUserMessage?.content || '',
@@ -342,6 +359,7 @@ export async function streamText(props: {
     baseSystemPrompt,
     hasMCPTools,
     skillsGuidance,
+    requiresArtifactOutput: effectiveChatMode === 'build',
   });
 
   const modelInstance = provider.getModelInstance({

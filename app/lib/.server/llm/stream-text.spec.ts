@@ -23,6 +23,29 @@ describe('stream-text helpers', () => {
     expect(prompt).toBe('BASE_ONLY');
   });
 
+  it('adds an artifact output contract for build requests', () => {
+    const prompt = buildEffectiveSystemPrompt({
+      baseSystemPrompt: 'base prompt',
+      hasMCPTools: false,
+      requiresArtifactOutput: true,
+    });
+
+    expect(prompt).toContain('base prompt');
+    expect(prompt).toContain('<build_artifact_output_contract>');
+    expect(prompt).toContain('You MUST output exactly one <boltArtifact> block');
+    expect(prompt).toContain('Do NOT wrap <boltArtifact> or <boltAction> tags in markdown fences');
+  });
+
+  it('does not add the artifact output contract for discuss requests', () => {
+    const prompt = buildEffectiveSystemPrompt({
+      baseSystemPrompt: 'base prompt',
+      hasMCPTools: false,
+    });
+
+    expect(prompt).toBe('base prompt');
+    expect(prompt).not.toContain('<build_artifact_output_contract>');
+  });
+
   it('strips unsupported reasoning params and skills option', () => {
     const filtered = filterStreamingOptions(
       {
