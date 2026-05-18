@@ -247,6 +247,70 @@ describe('EnhancedStreamingMessageParser', () => {
       parser = new EnhancedStreamingMessageParser({ callbacks });
     });
 
+    it('should wrap standalone boltAction file output in an artifact', () => {
+      const input = `我来帮你生成一个简洁、现代的深色风格登录页面。
+
+<boltAction type="file" filePath="index.html">
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>登录</title>
+</head>
+<body>
+  <form>
+    <input type="email" />
+    <input type="password" />
+    <button type="submit">登录</button>
+  </form>
+</body>
+</html>
+</boltAction>`;
+
+      const output = parser.parse('test_standalone_bolt_action_1', input);
+
+      expect(output).not.toContain('<boltAction');
+      expect(output).toContain('__boltArtifact__');
+      expect(callbacks.onArtifactOpen).toHaveBeenCalledTimes(1);
+      expect(callbacks.onArtifactClose).toHaveBeenCalledTimes(1);
+      expect(callbacks.onActionOpen).toHaveBeenCalledTimes(1);
+      expect(callbacks.onActionClose).toHaveBeenCalledTimes(1);
+      expect(callbacks.onArtifactOpen).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'index.html',
+        }),
+      );
+      expect(callbacks.onActionOpen).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: expect.objectContaining({
+            type: 'file',
+            filePath: 'index.html',
+          }),
+        }),
+      );
+      expect(callbacks.onActionClose).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: expect.objectContaining({
+            type: 'file',
+            content: expect.stringContaining('<!DOCTYPE html>'),
+          }),
+        }),
+      );
+    });
+
+    it('should hide incomplete standalone boltAction markup while streaming', () => {
+      const input = `我来帮你生成登录页。
+
+<boltAction type="file" filePath="index.html">
+<!DOCTYPE html>`;
+
+      const output = parser.parse('test_standalone_bolt_action_2', input);
+
+      expect(output).toBe('我来帮你生成登录页。\n\n');
+      expect(callbacks.onArtifactOpen).not.toHaveBeenCalled();
+      expect(callbacks.onActionOpen).not.toHaveBeenCalled();
+    });
+
     it('should wrap standalone full HTML page output as index.html', () => {
       const input = `Sure, here is a simple login page using HTML, CSS and JavaScript:
 

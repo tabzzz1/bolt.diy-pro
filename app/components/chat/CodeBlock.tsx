@@ -52,32 +52,33 @@ export const CodeBlock = memo(
     }, [code, language, theme]);
 
     return (
-      <div className={classNames('relative group text-left', className)}>
-        <div
-          className={classNames(
-            styles.CopyButtonContainer,
-            'bg-transparant absolute top-[10px] right-[10px] rounded-md z-10 text-lg flex items-center justify-center opacity-0 group-hover:opacity-100',
-            {
-              'rounded-l-0 opacity-100': copied,
-            },
-          )}
-        >
-          {!disableCopy && (
+      <div className={classNames('relative group text-left w-full min-w-0', className)}>
+        {!disableCopy && (
+          <div
+            className={classNames(
+              styles.CopyButtonContainer,
+              'absolute top-[10px] right-[10px] z-10 flex items-center opacity-0 group-hover:opacity-100 transition-opacity',
+              {
+                'opacity-100': copied,
+              },
+            )}
+          >
+            {copied && (
+              <span className="mr-2 h-[30px] rounded-md border border-gray-300 bg-white px-2 text-xs leading-[30px] text-gray-500 shadow-sm">
+                Copied
+              </span>
+            )}
             <button
-              className={classNames(
-                'flex items-center bg-accent-500 p-[6px] justify-center before:bg-white before:rounded-l-md before:text-gray-500 before:border-r before:border-gray-300 rounded-md transition-theme',
-                {
-                  'before:opacity-0': !copied,
-                  'before:opacity-100': copied,
-                },
-              )}
+              type="button"
+              className="relative flex h-[30px] w-[30px] items-center justify-center rounded-md bg-accent-500 text-lg text-white transition-theme hover:bg-accent-600"
               title="Copy Code"
+              aria-label="Copy code"
               onClick={() => copyToClipboard()}
             >
-              <div className="i-ph:clipboard-text-duotone"></div>
+              <div className="i-ph:clipboard-text-duotone" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
         <div
           className="max-w-full overflow-x-auto modern-scrollbar"
           dangerouslySetInnerHTML={{ __html: html ?? '' }}

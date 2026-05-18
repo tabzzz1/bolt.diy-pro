@@ -33,14 +33,31 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
   }
 
   parse(messageId: string, input: string): string {
+    const normalizedInput = this._normalizeStandaloneBoltActions(messageId, input);
+
+    /*
+     * If a model starts streaming a standalone action before its closing tag,
+     * avoid rendering the raw implementation tag in chat. Once the action is
+     * complete, the parser resets and reparses the normalized artifact.
+     */
+    if (normalizedInput === null) {
+      const actionStart = input.indexOf('<boltAction');
+
+      return super.parse(messageId, input.slice(0, actionStart));
+    }
+
+    if (normalizedInput !== input) {
+      this.reset();
+    }
+
     // First try the normal parsing
-    let output = super.parse(messageId, input);
+    let output = super.parse(messageId, normalizedInput);
 
     // If no artifacts were detected, check for code blocks that should be files
-    if (!this._hasDetectedArtifacts(input)) {
-      const enhancedInput = this._detectAndWrapCodeBlocks(messageId, input);
+    if (!this._hasDetectedArtifacts(normalizedInput)) {
+      const enhancedInput = this._detectAndWrapCodeBlocks(messageId, normalizedInput);
 
-      if (enhancedInput !== input) {
+      if (enhancedInput !== normalizedInput) {
         // Reset and reparse with enhanced input
         this.reset();
         output = super.parse(messageId, enhancedInput);
@@ -52,6 +69,58 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
 
   private _hasDetectedArtifacts(input: string): boolean {
     return input.includes('<boltArtifact') || input.includes('</boltArtifact>');
+  }
+
+  private _normalizeStandaloneBoltActions(messageId: string, input: string): string | null {
+    if (!input.includes('<boltAction') || input.includes('<boltArtifact')) {
+      return input;
+    }
+
+    if (!input.includes('</boltAction>')) {
+      return null;
+    }
+
+    const standaloneActionPattern = /<boltAction\b[^>]*>[\s\S]*?<\/boltAction>/gi;
+    let wrappedActionCount = 0;
+
+    const normalized = input.replace(standaloneActionPattern, (actionMarkup) => {
+      wrappedActionCount++;
+
+      const artifactId = `artifact-${messageId}-standalone-${this._artifactCounter++}`;
+      const title = this._inferStandaloneActionTitle(actionMarkup);
+
+      return `<boltArtifact id="${artifactId}" title="${title}" type="bundled">
+${actionMarkup}
+</boltArtifact>`;
+    });
+
+    return wrappedActionCount > 0 ? normalized : input;
+  }
+
+  private _inferStandaloneActionTitle(actionMarkup: string): string {
+    const type = this._extractActionAttribute(actionMarkup, 'type');
+
+    if (type === 'file') {
+      const filePath = this._extractActionAttribute(actionMarkup, 'filePath');
+
+      return filePath?.split('/').filter(Boolean).pop() || 'Generated File';
+    }
+
+    if (type === 'start') {
+      return 'Start Command';
+    }
+
+    if (type === 'shell') {
+      return 'Shell Command';
+    }
+
+    return 'Generated Action';
+  }
+
+  private _extractActionAttribute(actionMarkup: string, attributeName: string): string | undefined {
+    const match = actionMarkup.match(new RegExp(`${attributeName}="([^"]*)"`, 'i'));
+
+    return match ? match[1] : undefined;
   }
 
   private _detectAndWrapCodeBlocks(messageId: string, input: string): string {
