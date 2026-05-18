@@ -102,7 +102,7 @@ export const Menu = () => {
   const loadEntries = useCallback(() => {
     if (db) {
       getAll(db)
-        .then((list) => list.filter((item) => item.urlId && item.description))
+        .then((list) => list.filter((item) => item.messages?.length > 0))
         .then(setList)
         .catch((error) => toast.error(error.message));
     }
@@ -478,7 +478,7 @@ export const Menu = () => {
                         <p>
                           {t('menu.confirmDeleteDesc')}{' '}
                           <span className="font-medium text-gray-900 dark:text-white">
-                            {dialogContent.item.description}
+                            {dialogContent.item.description || 'Untitled chat'}
                           </span>
                         </p>
                         <p className="mt-2">{t('menu.confirmDeleteQuestion')}</p>
@@ -513,7 +513,9 @@ export const Menu = () => {
                           <ul className="list-disc pl-5 space-y-1">
                             {dialogContent.items.map((item) => (
                               <li key={item.id} className="text-sm">
-                                <span className="font-medium text-gray-900 dark:text-white">{item.description}</span>
+                                <span className="font-medium text-gray-900 dark:text-white">
+                                  {item.description || 'Untitled chat'}
+                                </span>
                               </li>
                             ))}
                           </ul>

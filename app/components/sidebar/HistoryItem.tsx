@@ -28,11 +28,13 @@ export function HistoryItem({
 }: HistoryItemProps) {
   const { t } = useTranslation('sidebar');
   const { id: urlId } = useParams();
-  const isActiveChat = urlId === item.urlId;
+  const historyUrlId = item.urlId || item.id;
+  const itemDescription = item.description || 'Untitled chat';
+  const isActiveChat = urlId === historyUrlId || urlId === item.id;
 
   const { editing, handleChange, handleBlur, handleSubmit, handleKeyDown, currentDescription, toggleEditMode } =
     useEditChatDescription({
-      initialDescription: item.description,
+      initialDescription: itemDescription,
       customChatId: item.id,
       syncWithGlobalStore: isActiveChat,
     });
@@ -109,7 +111,7 @@ export function HistoryItem({
         </form>
       ) : (
         <a
-          href={`/chat/${item.urlId}`}
+          href={`/chat/${historyUrlId}`}
           className="flex w-full relative truncate block"
           onClick={selectionMode ? handleItemClick : undefined}
         >

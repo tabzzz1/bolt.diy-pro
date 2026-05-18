@@ -39,6 +39,52 @@ export const db = persistenceEnabled ? await openDatabase() : undefined;
 export const chatId = atom<string | undefined>(undefined);
 export const description = atom<string | undefined>(undefined);
 export const chatMetadata = atom<IChatMetadata | undefined>(undefined);
+
+const FALLBACK_CHAT_DESCRIPTION = 'Untitled chat';
+const MAX_DERIVED_DESCRIPTION_LENGTH = 80;
+
+function extractMessageText(message: Message): string {
+  const content = message.content as unknown;
+
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (Array.isArray(content)) {
+    return (
+      content
+        .map((part: unknown) => {
+          if (part && typeof part === 'object' && 'text' in part && typeof part.text === 'string') {
+            return part.text;
+          }
+
+          return '';
+        })
+        .join(' ')
+        .trim()
+    );
+  }
+
+  return '';
+}
+
+function deriveDescriptionFromMessages(messages: Message[]): string {
+  const firstUserMessage = messages.find((message) => message.role === 'user' && !message.annotations?.includes('hidden'));
+  const content = firstUserMessage ? extractMessageText(firstUserMessage) : '';
+  const withoutMetadata = content
+    .replace(/^\s*(?:\[Model:[^\]]+\]\s*)?(?:\[Provider:[^\]]+\]\s*)?/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!withoutMetadata) {
+    return FALLBACK_CHAT_DESCRIPTION;
+  }
+
+  return withoutMetadata.length > MAX_DERIVED_DESCRIPTION_LENGTH
+    ? `${withoutMetadata.slice(0, MAX_DERIVED_DESCRIPTION_LENGTH - 1).trimEnd()}...`
+    : withoutMetadata;
+}
+
 export function useChatHistory() {
   const navigate = useNavigate();
   const { id: mixedId } = useLoaderData<{ id?: string }>();
@@ -281,13 +327,27 @@ ${value.content}
       const { firstArtifact } = workbenchStore;
       messages = messages.filter((m) => !m.annotations?.includes('no-store'));
 
+      if (messages.length === 0) {
+        return;
+      }
+
+      let finalChatId = chatId.get();
+
+      if (initialMessages.length === 0 && !finalChatId) {
+        finalChatId = await getNextId(db);
+        chatId.set(finalChatId);
+      }
+
       let _urlId = urlId;
 
       if (!urlId && firstArtifact?.id) {
-        const urlId = await getUrlId(db, firstArtifact.id);
-        _urlId = urlId;
-        navigateChat(urlId);
-        setUrlId(urlId);
+        _urlId = await getUrlId(db, firstArtifact.id);
+        navigateChat(_urlId);
+        setUrlId(_urlId);
+      } else if (!_urlId && finalChatId) {
+        _urlId = finalChatId;
+        navigateChat(_urlId);
+        setUrlId(_urlId);
       }
 
       let chatSummary: string | undefined = undefined;
@@ -307,23 +367,17 @@ ${value.content}
 
       takeSnapshot(messages[messages.length - 1].id, workbenchStore.files.get(), _urlId, chatSummary);
 
-      if (!description.get() && firstArtifact?.title) {
+      const derivedDescription = deriveDescriptionFromMessages(messages);
+      const currentDescription = description.get();
+
+      if (
+        firstArtifact?.title &&
+        (!currentDescription || currentDescription === FALLBACK_CHAT_DESCRIPTION || currentDescription === derivedDescription)
+      ) {
         description.set(firstArtifact?.title);
+      } else if (!currentDescription) {
+        description.set(derivedDescription);
       }
-
-      // Ensure chatId.get() is used here as well
-      if (initialMessages.length === 0 && !chatId.get()) {
-        const nextId = await getNextId(db);
-
-        chatId.set(nextId);
-
-        if (!urlId) {
-          navigateChat(nextId);
-        }
-      }
-
-      // Ensure chatId.get() is used for the final setMessages call
-      const finalChatId = chatId.get();
 
       if (!finalChatId) {
         console.error('Cannot save messages, chat ID is not set.');
@@ -336,7 +390,7 @@ ${value.content}
         db,
         finalChatId, // Use the potentially updated chatId
         [...archivedMessages, ...messages],
-        urlId,
+        _urlId,
         description.get(),
         undefined,
         chatMetadata.get(),
