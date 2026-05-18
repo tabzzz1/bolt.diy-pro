@@ -1,11 +1,11 @@
-import type { WebContainer } from '@webcontainer/api';
+import type { Unsubscribe, WebContainer } from '@webcontainer/api';
 import { path as nodePath } from '~/utils/path';
 import { atom, map, type MapStore } from 'nanostores';
 import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
-import type { BoltShell } from '~/utils/shell';
+import type { BoltShell, ExecutionResult } from '~/utils/shell';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -267,10 +267,19 @@ export class ActionRunner {
       action.content = validationResult.modifiedCommand;
     }
 
-    const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
+    const previewReadyPromise = this.#isLikelyPreviewServerCommand(action.content)
+      ? this.#waitForPreviewReady(await this.#webcontainer, action.abortSignal)
+      : undefined;
+
+    const commandPromise = shell.executeCommand(this.runnerId.get(), action.content, () => {
       logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
       action.abort();
     });
+
+    const resp = previewReadyPromise
+      ? await this.#waitForShellCommandOrPreviewReady(commandPromise, previewReadyPromise)
+      : await commandPromise;
+
     logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
 
     if (resp?.exitCode != 0) {
@@ -306,6 +315,94 @@ export class ActionRunner {
     }
 
     return resp;
+  }
+
+  async #waitForShellCommandOrPreviewReady(commandPromise: Promise<ExecutionResult>, previewReadyPromise: Promise<void>) {
+    const commandResult = commandPromise.then((resp) => ({ type: 'command' as const, resp }));
+    const previewReady = previewReadyPromise.then(() => ({ type: 'preview' as const }));
+    const result = await Promise.race([commandResult, previewReady]);
+
+    if (result.type === 'command') {
+      return result.resp;
+    }
+
+    /*
+     * A preview server is considered successfully started once WebContainer reports
+     * a ready/open port. The underlying terminal command is intentionally left
+     * running because dev/static preview servers are long-lived processes.
+     */
+    commandPromise.catch((error) => {
+      logger.debug('Preview server shell command ended after preview readiness:', error);
+    });
+
+    return { output: 'Preview server is ready', exitCode: 0 };
+  }
+
+  #waitForPreviewReady(webcontainer: WebContainer, abortSignal: AbortSignal) {
+    if (abortSignal.aborted) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      const unsubscribers: Unsubscribe[] = [];
+
+      const cleanup = () => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        abortSignal.removeEventListener('abort', handleAbort);
+
+        for (const unsubscribe of unsubscribers) {
+          unsubscribe();
+        }
+      };
+
+      const resolveOnce = () => {
+        cleanup();
+        resolve();
+      };
+
+      const handleAbort = () => {
+        cleanup();
+        resolve();
+      };
+
+      abortSignal.addEventListener('abort', handleAbort, { once: true });
+
+      unsubscribers.push(
+        webcontainer.on('server-ready', () => {
+          resolveOnce();
+        }),
+      );
+
+      unsubscribers.push(
+        webcontainer.on('port', (_port, type) => {
+          if (type === 'open') {
+            resolveOnce();
+          }
+        }),
+      );
+    });
+  }
+
+  #isLikelyPreviewServerCommand(command: string) {
+    const normalized = command
+      .replace(/\\\s*\n/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+
+    return [
+      /\b(npm|pnpm|yarn|bun)\s+(run\s+)?(dev|start|preview)\b/,
+      /\bnpx\s+(--yes\s+|-y\s+)?serve\b/,
+      /\bserve\s+.*\s(-l|--listen|-p|--port)\b/,
+      /\b(vite|next|nuxt|astro|remix|webpack|parcel)\s+(dev|start|preview|serve)\b/,
+      /\bng\s+serve\b/,
+      /\bexpo\s+start\b/,
+    ].some((pattern) => pattern.test(normalized));
   }
 
   async #runFileAction(action: ActionState) {
