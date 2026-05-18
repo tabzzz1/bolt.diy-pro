@@ -66,6 +66,8 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
 
     // First, detect and handle shell commands separately
     enhanced = this._detectAndWrapShellCommands(messageId, enhanced, processed);
+    enhanced = this._detectAndWrapStandaloneHtml(messageId, enhanced, processed);
+    enhanced = this._detectAndWrapRawHtmlDocument(messageId, enhanced, processed);
 
     // Optimized regex patterns with better performance
     const patterns = [
@@ -201,13 +203,19 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
     return enhanced;
   }
 
-  private _wrapInArtifact(artifactId: string, filePath: string, content: string): string {
+  private _wrapInArtifact(artifactId: string, filePath: string, content: string, startCommand?: string): string {
     const title = filePath.split('/').pop() || 'File';
+    const startAction = startCommand
+      ? `
+<boltAction type="start">
+${startCommand}
+</boltAction>`
+      : '';
 
     return `<boltArtifact id="${artifactId}" title="${title}" type="bundled">
 <boltAction type="file" filePath="${filePath}">
 ${content}
-</boltAction>
+</boltAction>${startAction}
 </boltArtifact>`;
   }
 
@@ -299,6 +307,12 @@ ${content.trim()}
   }
 
   private _inferFileNameFromContent(content: string, language: string): string {
+    const normalizedLanguage = language.toLowerCase();
+
+    if (normalizedLanguage === 'html' || normalizedLanguage === 'htm') {
+      return '/index.html';
+    }
+
     // Try to infer component name from content
     const componentMatch = content.match(
       /(?:function|class|const|export\s+default\s+function|export\s+function)\s+(\w+)/,
@@ -523,5 +537,101 @@ ${content.trim()}
     super.reset();
     this._processedCodeBlocks.clear();
     this._artifactCounter = 0;
+  }
+
+  private _detectAndWrapStandaloneHtml(messageId: string, input: string, processed: Set<string>): string {
+    const standaloneHtmlPattern = /```(html?|markup)\n([\s\S]*?)```/gi;
+
+    return input.replace(standaloneHtmlPattern, (match, language, content) => {
+      const blockHash = this._hashBlock(match);
+
+      if (processed.has(blockHash)) {
+        return match;
+      }
+
+      if (!this._isCompleteHtmlDocument(content) || !this._hasStandaloneHtmlCreationContext(input, match)) {
+        return match;
+      }
+
+      processed.add(blockHash);
+
+      const artifactId = `artifact-${messageId}-${this._artifactCounter++}`;
+      logger.debug(`Auto-wrapped standalone ${language} block as index.html`);
+
+      return this._wrapInArtifact(artifactId, '/index.html', content.trim(), 'npx --yes serve .');
+    });
+  }
+
+  private _detectAndWrapRawHtmlDocument(messageId: string, input: string, processed: Set<string>): string {
+    const rawHtmlDocumentPattern = /(?:<!doctype\s+html\s*>\s*)?<html\b[\s\S]*?<\/html>/gi;
+
+    return input.replace(rawHtmlDocumentPattern, (match, offset) => {
+      const blockHash = this._hashBlock(match);
+
+      if (processed.has(blockHash)) {
+        return match;
+      }
+
+      if (this._isInsideCodeFence(input, offset) || this._isInsideArtifact(input, offset)) {
+        return match;
+      }
+
+      if (!this._isCompleteHtmlDocument(match) || !this._hasStandaloneHtmlCreationContext(input, match)) {
+        return match;
+      }
+
+      processed.add(blockHash);
+
+      const artifactId = `artifact-${messageId}-${this._artifactCounter++}`;
+      logger.debug('Auto-wrapped raw HTML document as index.html');
+
+      return this._wrapInArtifact(artifactId, '/index.html', match.trim(), 'npx --yes serve .');
+    });
+  }
+
+  private _isInsideCodeFence(input: string, offset: number): boolean {
+    const beforeMatch = input.slice(0, offset);
+    const fenceCount = beforeMatch.match(/```/g)?.length || 0;
+
+    return fenceCount % 2 === 1;
+  }
+
+  private _isInsideArtifact(input: string, offset: number): boolean {
+    const beforeMatch = input.slice(0, offset);
+    const lastArtifactOpen = beforeMatch.lastIndexOf('<boltArtifact');
+    const lastArtifactClose = beforeMatch.lastIndexOf('</boltArtifact>');
+
+    return lastArtifactOpen > lastArtifactClose;
+  }
+
+  private _isCompleteHtmlDocument(content: string): boolean {
+    const normalized = content.trim().toLowerCase();
+
+    return (
+      (normalized.includes('<!doctype html') || normalized.includes('<html')) &&
+      normalized.includes('</html>') &&
+      normalized.includes('<body') &&
+      normalized.includes('</body>')
+    );
+  }
+
+  private _hasStandaloneHtmlCreationContext(input: string, codeBlockMatch: string): boolean {
+    const matchIndex = input.indexOf(codeBlockMatch);
+
+    if (matchIndex === -1) {
+      return false;
+    }
+
+    const beforeContext = input.substring(Math.max(0, matchIndex - 300), matchIndex);
+    const afterContext = input.substring(matchIndex + codeBlockMatch.length, matchIndex + codeBlockMatch.length + 120);
+    const contextText = `${beforeContext}\n${afterContext}`;
+
+    const creationPatterns = [
+      /\b(create|build|implement|make|generate|set up|built|created)\b/i,
+      /\b(page|webpage|website|site|app|login|signup|form|screen|landing)\b/i,
+      /页面|网页|网站|应用|登录|注册|表单|实现|创建|生成|构建/,
+    ];
+
+    return creationPatterns.some((pattern) => pattern.test(contextText));
   }
 }

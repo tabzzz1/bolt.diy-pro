@@ -247,6 +247,132 @@ describe('EnhancedStreamingMessageParser', () => {
       parser = new EnhancedStreamingMessageParser({ callbacks });
     });
 
+    it('should wrap standalone full HTML page output as index.html', () => {
+      const input = `Sure, here is a simple login page using HTML, CSS and JavaScript:
+
+\`\`\`html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Login</title>
+    <style>
+      body { font-family: sans-serif; }
+    </style>
+  </head>
+  <body>
+    <form>
+      <input type="email" />
+      <input type="password" />
+      <button type="submit">Sign in</button>
+    </form>
+    <script>
+      document.querySelector('form').addEventListener('submit', (event) => {
+        event.preventDefault();
+      });
+    </script>
+  </body>
+</html>
+\`\`\``;
+
+      parser.parse('test_standalone_html_1', input);
+
+      expect(callbacks.onArtifactOpen).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'index.html',
+        }),
+      );
+      expect(callbacks.onActionOpen).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: expect.objectContaining({
+            type: 'file',
+            filePath: '/index.html',
+          }),
+        }),
+      );
+      expect(callbacks.onActionOpen).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: expect.objectContaining({
+            type: 'start',
+          }),
+        }),
+      );
+    });
+
+    it('should not wrap standalone HTML snippets without creation context', () => {
+      const input = `This is what a minimal HTML document looks like:
+
+\`\`\`html
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Example</title>
+  </head>
+  <body>
+    <p>Hello</p>
+  </body>
+</html>
+\`\`\``;
+
+      parser.parse('test_standalone_html_2', input);
+
+      expect(callbacks.onArtifactOpen).not.toHaveBeenCalled();
+      expect(callbacks.onActionOpen).not.toHaveBeenCalled();
+    });
+
+    it('should wrap raw full HTML document output as index.html', () => {
+      const input = `我来帮你设计一个简洁美观的登录页面，采用深色主题与渐变色彩，并包含基础的表单校验交互。
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>登录</title>
+  <style>
+    body { min-height: 100vh; font-family: sans-serif; }
+  </style>
+</head>
+<body>
+  <main>
+    <form>
+      <input type="email" />
+      <input type="password" />
+      <button type="submit">登录</button>
+    </form>
+  </main>
+  <script>
+    document.querySelector('form').addEventListener('submit', (event) => {
+      event.preventDefault();
+    });
+  </script>
+</body>
+</html>`;
+
+      parser.parse('test_raw_html_1', input);
+
+      expect(callbacks.onArtifactOpen).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'index.html',
+        }),
+      );
+      expect(callbacks.onActionOpen).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: expect.objectContaining({
+            type: 'file',
+            filePath: '/index.html',
+          }),
+        }),
+      );
+      expect(callbacks.onActionOpen).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: expect.objectContaining({
+            type: 'start',
+          }),
+        }),
+      );
+    });
+
     describe('GPT-4 style outputs', () => {
       it('should handle file creation with explicit path', () => {
         const input = `I'll create a React component for you.
