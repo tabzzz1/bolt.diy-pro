@@ -832,6 +832,9 @@ const zh = {
 
     assistantLabel: 'Bolt',
     tokenCount: '{{count}} tokens',
+    reasoning: {
+      title: '思考过程',
+    },
     rewindTooltip: '回退到此消息',
     forkTooltip: '从此消息分叉对话',
     actions: {

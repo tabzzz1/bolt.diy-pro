@@ -888,6 +888,9 @@ const en = {
     },
     assistantLabel: 'Bolt',
     tokenCount: '{{count}} tokens',
+    reasoning: {
+      title: 'Reasoning',
+    },
     rewindTooltip: 'Revert to this message',
     forkTooltip: 'Fork chat from this message',
     actions: {

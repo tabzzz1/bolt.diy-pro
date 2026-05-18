@@ -18,6 +18,8 @@ import { ToolInvocations } from './ToolInvocations';
 import type { ToolCallAnnotation } from '~/types/context';
 import { useTranslation } from 'react-i18next';
 import { AssistantMessageActions } from './MessageActions';
+import { extractReasoningFromContent } from '~/utils/reasoning';
+import { classNames } from '~/utils/classNames';
 
 interface AssistantMessageProps {
   content: string;
@@ -62,6 +64,47 @@ function normalizedFilePath(path: string) {
   return normalizedPath;
 }
 
+function ReasoningDisclosure({
+  reasoning,
+  defaultOpen = false,
+}: {
+  reasoning: string;
+  defaultOpen?: boolean;
+}) {
+  const { t } = useTranslation('chat');
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  if (!reasoning.trim()) {
+    return null;
+  }
+
+  return (
+    <div className="mb-3 rounded-md border border-bolt-elements-borderColor/60 bg-bolt-elements-background-depth-2 overflow-hidden">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left text-xs text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-expanded={isOpen}
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <span className="i-ph:brain text-sm text-bolt-elements-item-contentAccent flex-shrink-0" />
+          <span className="font-medium truncate">{t('reasoning.title')}</span>
+        </span>
+        <span
+          className={classNames('i-ph:caret-down text-sm flex-shrink-0 transition-transform', {
+            'rotate-180': isOpen,
+          })}
+        />
+      </button>
+      {isOpen && (
+        <div className="border-t border-bolt-elements-borderColor/50 px-3 py-2 text-xs leading-5 text-bolt-elements-textTertiary whitespace-pre-wrap max-h-80 overflow-y-auto">
+          {reasoning}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const AssistantMessage = memo(
   ({
     content,
@@ -80,6 +123,17 @@ export const AssistantMessage = memo(
   }: AssistantMessageProps) => {
     const { t } = useTranslation('chat');
     const [totalDurationSeconds, setTotalDurationSeconds] = useState<number | null>(null);
+    const extractedContent = useMemo(() => extractReasoningFromContent(content), [content]);
+    const reasoningText = useMemo(() => {
+      const reasoningFromParts =
+        parts
+          ?.filter((part): part is ReasoningUIPart => part.type === 'reasoning')
+          .map((part) => part.reasoning.trim())
+          .filter(Boolean)
+          .join('\n\n') || '';
+
+      return [reasoningFromParts, extractedContent.reasoning].filter(Boolean).join('\n\n');
+    }, [parts, extractedContent.reasoning]);
 
     const filteredAnnotations = (annotations?.filter(
       (annotation: JSONValue) =>
@@ -124,7 +178,7 @@ export const AssistantMessage = memo(
     const groupedSegments = useMemo(() => {
       if (!parts || parts.length === 0) {
         // Fallback: no parts, just render content
-        return [{ type: 'text' as const, text: content }];
+        return [{ type: 'text' as const, text: extractedContent.content }];
       }
 
       const hasToolInvocations = parts.some((p) => p.type === 'tool-invocation');
@@ -133,7 +187,7 @@ export const AssistantMessage = memo(
         // No tool invocations – use the pre-parsed `content` so that
         // <boltArtifact> tags (now transformed to __boltArtifact__ divs)
         // render as artifact cards instead of raw code.
-        return [{ type: 'text' as const, text: content }];
+        return [{ type: 'text' as const, text: extractedContent.content }];
       }
 
       // There are tool invocations – interleave text and tool-invocation segments.
@@ -151,7 +205,7 @@ export const AssistantMessage = memo(
           // Only push the parsed content once as the leading text block
           if (!hasLeadingText) {
             hasLeadingText = true;
-            segments.push({ type: 'text', text: content });
+            segments.push({ type: 'text', text: extractedContent.content });
           }
         } else if (part.type === 'tool-invocation') {
           // Group consecutive tool invocation parts
@@ -168,12 +222,12 @@ export const AssistantMessage = memo(
       }
 
       // If no text part was encountered, still include the parsed content
-      if (!hasLeadingText && content) {
-        segments.unshift({ type: 'text', text: content });
+      if (!hasLeadingText && extractedContent.content) {
+        segments.unshift({ type: 'text', text: extractedContent.content });
       }
 
       return segments;
-    }, [parts, content]);
+    }, [parts, extractedContent.content]);
 
     useEffect(() => {
       if (!isStreaming) {
@@ -267,6 +321,8 @@ export const AssistantMessage = memo(
 
         {/* Message content — rendered in part order so tool cards stay in place */}
         <div className="pl-[30px]">
+          <ReasoningDisclosure reasoning={reasoningText} defaultOpen={isStreaming} />
+
           {groupedSegments.map((segment, index) => {
             if (segment.type === 'text') {
               return (

@@ -344,13 +344,15 @@ export async function streamText(props: {
     skillsGuidance,
   });
 
+  const modelInstance = provider.getModelInstance({
+    model: modelDetails.name,
+    serverEnv,
+    apiKeys,
+    providerSettings,
+  });
+
   const streamParams = {
-    model: provider.getModelInstance({
-      model: modelDetails.name,
-      serverEnv,
-      apiKeys,
-      providerSettings,
-    }),
+    model: modelInstance,
     system: effectiveSystemPrompt,
     ...tokenParams,
     messages: convertToCoreMessages(processedMessages as any),
