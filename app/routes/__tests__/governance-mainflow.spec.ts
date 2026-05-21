@@ -35,7 +35,12 @@ vi.mock('react-toastify', () => ({
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: { children?: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) =>
+    div: ({
+      children,
+      layout,
+      layoutId,
+      ...props
+    }: { children?: React.ReactNode; layout?: unknown; layoutId?: unknown } & React.HTMLAttributes<HTMLDivElement>) =>
       React.createElement('div', props, children),
   },
 }));
@@ -75,15 +80,26 @@ function createSettings(overrides: LifeBeginsFlagOverrides = {}) {
 
 describe('governance mainflow safety', () => {
   it('keeps non-growth main API path usable when all growth domains are disabled', async () => {
-    const response = await githubUserLoader({
-      request: new Request('http://localhost/api/github-user', { method: 'GET' }),
-      context: {} as any,
-      params: {},
-    });
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }));
 
-    expect(response.status).toBe(401);
-    const payload = (await response.json()) as { error?: string };
-    expect(payload.error).not.toBe('feature_disabled');
+    try {
+      const response = await githubUserLoader({
+        request: new Request('http://localhost/api/github-user', {
+          method: 'GET',
+          headers: {
+            Authorization: 'Bearer test-token',
+          },
+        }),
+        context: {} as any,
+        params: {},
+      });
+
+      expect(response.status).toBe(401);
+      const payload = (await response.json()) as { error?: string };
+      expect(payload.error).not.toBe('feature_disabled');
+    } finally {
+      fetchMock.mockRestore();
+    }
   });
 
   it('shows lightweight disabled semantics without mutating existing input state', async () => {

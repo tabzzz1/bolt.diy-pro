@@ -1,5 +1,7 @@
 logs
 *.log
+lighthouse-report.html
+.lighthouseci/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

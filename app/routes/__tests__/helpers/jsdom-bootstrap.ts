@@ -11,7 +11,7 @@ type ManagedGlobalKey =
 
 type GlobalSnapshot = {
   hadOwnProperty: boolean;
-  value: unknown;
+  descriptor?: PropertyDescriptor;
 };
 
 const MANAGED_GLOBALS: ManagedGlobalKey[] = [
@@ -28,7 +28,12 @@ let installedWindow: DOMWindow | null = null;
 let snapshot: Record<ManagedGlobalKey, GlobalSnapshot> | null = null;
 
 function setGlobal(name: ManagedGlobalKey, value: unknown) {
-  Object.assign(globalThis as Record<string, unknown>, { [name]: value });
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    enumerable: true,
+    writable: true,
+    value,
+  });
 }
 
 export function installJSDOMGlobals() {
@@ -44,7 +49,7 @@ export function installJSDOMGlobals() {
       const globalRecord = globalThis as Record<string, unknown>;
       acc[key] = {
         hadOwnProperty: Object.prototype.hasOwnProperty.call(globalThis, key),
-        value: globalRecord[key],
+        descriptor: Object.getOwnPropertyDescriptor(globalRecord, key),
       };
       return acc;
     },
@@ -72,7 +77,7 @@ export function teardownJSDOMGlobals() {
     const value = snapshot![key];
 
     if (value.hadOwnProperty) {
-      globalRecord[key] = value.value;
+      Object.defineProperty(globalRecord, key, value.descriptor!);
       return;
     }
 
