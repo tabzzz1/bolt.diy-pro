@@ -871,6 +871,14 @@ const zh = {
       modelSettings: '模型设置',
       fetchUrlContent: '获取 URL 内容',
     },
+    previewToolbar: {
+      switchToResponsiveMode: '切换到响应式模式',
+      switchToDeviceMode: '切换到设备模式',
+      disableElementInspector: '禁用元素检查器',
+      enableElementInspector: '启用元素检查器',
+      exitFullScreen: '退出全屏',
+      fullScreen: '全屏',
+    },
     alert: {
       previewError: 'Preview 错误',
       terminalError: 'Terminal 错误',

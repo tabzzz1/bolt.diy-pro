@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '@nanostores/react';
+import { useTranslation } from 'react-i18next';
 import { IconButton } from '~/components/ui/IconButton';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { PortDropdown } from './PortDropdown';
@@ -53,6 +54,7 @@ const WINDOW_SIZES: WindowSize[] = [
 ];
 
 export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
+  const { t } = useTranslation('chat');
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -718,7 +720,7 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
           <IconButton
             icon="i-ph:devices"
             onClick={toggleDeviceMode}
-            title={isDeviceModeOn ? 'Switch to Responsive Mode' : 'Switch to Device Mode'}
+            title={isDeviceModeOn ? t('previewToolbar.switchToResponsiveMode') : t('previewToolbar.switchToDeviceMode')}
           />
 
           {expoUrl && <IconButton icon="i-ph:qr-code" onClick={() => setIsExpoQrModalOpen(true)} title="Show QR" />}
@@ -745,12 +747,14 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
             className={
               isInspectorMode ? 'bg-bolt-elements-background-depth-3 !text-bolt-elements-item-contentAccent' : ''
             }
-            title={isInspectorMode ? 'Disable Element Inspector' : 'Enable Element Inspector'}
+            title={
+              isInspectorMode ? t('previewToolbar.disableElementInspector') : t('previewToolbar.enableElementInspector')
+            }
           />
           <IconButton
             icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'}
             onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+            title={isFullscreen ? t('previewToolbar.exitFullScreen') : t('previewToolbar.fullScreen')}
           />
 
           <div className="flex items-center relative">

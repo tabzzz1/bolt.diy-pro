@@ -929,6 +929,14 @@ const en = {
       modelSettings: 'Model Settings',
       fetchUrlContent: 'Fetch URL content',
     },
+    previewToolbar: {
+      switchToResponsiveMode: 'Switch to Responsive Mode',
+      switchToDeviceMode: 'Switch to Device Mode',
+      disableElementInspector: 'Disable Element Inspector',
+      enableElementInspector: 'Enable Element Inspector',
+      exitFullScreen: 'Exit Full Screen',
+      fullScreen: 'Full Screen',
+    },
     alert: {
       previewError: 'Preview Error',
       terminalError: 'Terminal Error',
